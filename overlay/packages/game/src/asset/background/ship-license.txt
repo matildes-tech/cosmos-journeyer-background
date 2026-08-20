@@ -1,0 +1,11 @@
+Model Information:
+* title:	Aircraft Decor
+* source:	https://sketchfab.com/3d-models/aircraft-decor-7e3aa0fa94ea43cb90b8c7984e724cf2
+* author:	jimbogies (https://sketchfab.com/jimbogies)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Aircraft Decor" (https://sketchfab.com/3d-models/aircraft-decor-7e3aa0fa94ea43cb90b8c7984e724cf2) by jimbogies (https://sketchfab.com/jimbogies) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

@@ -1,0 +1,285 @@
+/*
+ *  Page layer for the universe background prototype.
+ *
+ *  Cosmos Journeyer is licensed AGPL-3.0-only; this file is part of a derived
+ *  work and carries the same licence.
+ */
+
+:root {
+    --ink: #eef2f8;
+    --muted: #93a3bb;
+    --edge: rgba(190, 210, 240, 0.18);
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html {
+    /* The camera is smoothed on the frame clock, so the scrollbar itself stays
+       native — no scroll-jacking, no hijacked wheel, no inertia library. */
+    scroll-behavior: auto;
+}
+
+body {
+    margin: 0;
+    background: #000;
+    color: var(--ink);
+    font:
+        400 16px/1.55 ui-sans-serif,
+        -apple-system,
+        "Segoe UI",
+        Roboto,
+        sans-serif;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* The scene. Fixed behind everything and inert: pointer-events must stay none
+   or the canvas swallows scrolling and text selection. */
+#universe {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    /* Small-viewport height, so the canvas is not cropped by a mobile browser's
+       address bar as it shows and hides. 100vh is the *large* viewport there. */
+    height: 100svh;
+    display: block;
+    z-index: 0;
+    pointer-events: none;
+    touch-action: none;
+    outline: none;
+}
+
+#topbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 3;
+    display: flex;
+    align-items: center;
+    padding: 20px 28px;
+    pointer-events: none;
+}
+
+.brand {
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    font-size: 13px;
+}
+
+main {
+    position: relative;
+    z-index: 2;
+}
+
+/* Long sections with pinned copy.
+   usavionix scrubs its whole flight across roughly fifty thousand pixels of
+   scroll. Covering the same journey in one viewport per section makes every
+   wheel notch worth ten times as much camera, which is what made this feel
+   twitchy. Each section is now many screens tall and its copy is pinned, so a
+   notch of wheel is a small, readable amount of travel. */
+.panel {
+    height: 190svh;
+    position: relative;
+}
+
+.panel-inner {
+    position: sticky;
+    top: 0;
+    height: 100svh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 0 clamp(24px, 7vw, 132px);
+    max-width: 62ch;
+}
+
+.eyebrow {
+    margin: 0 0 18px;
+    font-size: 11px;
+    letter-spacing: 0.28em;
+    color: var(--muted);
+}
+
+h1 {
+    margin: 0;
+    font-size: clamp(56px, 11vw, 132px);
+    line-height: 0.94;
+    letter-spacing: -0.03em;
+    font-weight: 600;
+}
+
+h2 {
+    margin: 0;
+    font-size: clamp(32px, 5.4vw, 64px);
+    line-height: 1.04;
+    letter-spacing: -0.02em;
+    font-weight: 600;
+}
+
+.lede {
+    margin: 18px 0 0;
+    font-size: clamp(15px, 1.5vw, 19px);
+    color: var(--muted);
+    max-width: 46ch;
+}
+
+.hint {
+    margin: 40px 0 0;
+    font-size: 12px;
+    letter-spacing: 0.2em;
+    color: var(--muted);
+}
+
+/* Loading overlay. Opaque until the scene exists, so the first thing seen is
+   the universe rather than a black rectangle mid-assembly. */
+#loader {
+    position: fixed;
+    inset: 0;
+    z-index: 9;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    background: #000;
+    transition: opacity 900ms ease;
+}
+
+#loader.done {
+    opacity: 0;
+    pointer-events: none;
+}
+
+#loader-text {
+    font-size: 12px;
+    letter-spacing: 0.18em;
+    color: var(--muted);
+}
+
+#loader-track {
+    width: min(320px, 62vw);
+    height: 1px;
+    background: var(--edge);
+    overflow: hidden;
+}
+
+#loader-bar {
+    width: 100%;
+    height: 100%;
+    background: var(--ink);
+    transform: scaleX(0);
+    transform-origin: 0 50%;
+    transition: transform 220ms ease;
+}
+
+/* Content fades up once the scene is live, so the copy never appears over an
+   unrendered frame. */
+main,
+#topbar {
+    opacity: 0;
+    transition: opacity 700ms ease 250ms;
+}
+
+body.ready main,
+body.ready #topbar {
+    opacity: 1;
+}
+
+/* Sits above the page but below nothing else: at full opacity the Sun has
+   filled the frame and there is nothing left to read. */
+#whiteout {
+    position: fixed;
+    inset: 0;
+    z-index: 8;
+    background: #fff;
+    opacity: 0;
+    pointer-events: none;
+    will-change: opacity;
+}
+
+/* Small and out of the way, but always present — the licence asks for credit,
+   not for a credit that only appears when convenient. */
+#credits {
+    position: fixed;
+    right: 14px;
+    bottom: 12px;
+    z-index: 6;
+    margin: 0;
+    max-width: 46ch;
+    text-align: right;
+    font-size: 10px;
+    line-height: 1.5;
+    color: rgba(147, 163, 187, 0.72);
+}
+
+#credits a {
+    color: inherit;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+#hud {
+    position: fixed;
+    left: 12px;
+    bottom: 12px;
+    z-index: 10;
+    padding: 7px 10px;
+    border: 1px solid var(--edge);
+    background: rgba(0, 0, 0, 0.68);
+    color: #8fb8ff;
+    font:
+        11px/1.5 ui-monospace,
+        monospace;
+    white-space: pre;
+    pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #loader,
+    main,
+    #topbar,
+    #loader-bar {
+        transition-duration: 1ms;
+    }
+}
+
+/* Phones ------------------------------------------------------------------ */
+
+@media (max-width: 780px) {
+    .panel-inner {
+        /* Copy sits higher, because the ship occupies the lower part of a
+           portrait frame far more than it does a landscape one. */
+        justify-content: flex-start;
+        padding-top: 18svh;
+    }
+
+    /* Full width and left-aligned: a right-aligned block of credits fights the
+       copy for the narrow column and wraps into an unreadable stack. */
+    #credits {
+        left: 14px;
+        right: 14px;
+        max-width: none;
+        text-align: left;
+        font-size: 9px;
+    }
+
+    #hud {
+        font-size: 9px;
+        left: 8px;
+        bottom: 8px;
+    }
+
+    #topbar {
+        padding: 14px 18px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    /* The flight is scroll-driven, so it cannot be stopped without removing the
+       page's whole purpose — but nothing here should also animate on its own. */
+    #loader-bar {
+        transition: none;
+    }
+}

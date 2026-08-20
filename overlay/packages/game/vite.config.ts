@@ -1,0 +1,102 @@
+import os from "os";
+import path from "path";
+import { fileURLToPath } from "url";
+
+import basicSsl from "@vitejs/plugin-basic-ssl";
+import { defineConfig, type PluginOption } from "vite";
+import glsl from "vite-plugin-glsl";
+import wasm from "vite-plugin-wasm";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const licenseBanner = `/*
+ *  This file is part of Cosmos Journeyer
+ *
+ *  Copyright (C) 2024 Barthélemy Paléologue <barth.paleologue@cosmosjourneyer.com>
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU Affero General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU Affero General Public License for more details.
+ *
+ *  You should have received a copy of the GNU Affero General Public License
+ *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+`;
+
+const getLocalNetworkAddress = (): string | undefined => {
+    try {
+        const address = Object.values(os.networkInterfaces())
+            .flat()
+            .find((candidate) => candidate !== undefined && candidate.family === "IPv4" && !candidate.internal);
+        return address?.address;
+    } catch {
+        return undefined;
+    }
+};
+
+export default defineConfig(({ mode }) => {
+    const isProduction = mode === "production";
+    const localNetworkAddress = isProduction ? undefined : getLocalNetworkAddress();
+
+    return {
+        base: "./",
+        clearScreen: false,
+        resolve: {
+            tsconfigPaths: true,
+        },
+        define: {
+            __DEV_SERVER_IP__: JSON.stringify(localNetworkAddress ?? ""),
+        },
+        server: {
+            host: "0.0.0.0",
+            port: 8080,
+            strictPort: true,
+            open: false,
+        },
+        plugins: [
+            basicSsl({
+                name: "cosmos-journeyer",
+            }),
+            glsl(),
+            wasm(),
+        ] as Array<PluginOption>,
+        worker: {
+            format: "es",
+            plugins: (): Array<PluginOption> => [wasm()] as Array<PluginOption>,
+        },
+        assetsInclude: ["**/*.env", "**/*.babylon", "**/*.glb", "**/*.wasm"],
+        build: {
+            outDir: "dist",
+            emptyOutDir: true,
+            // Off for the deployed build: the maps are roughly eighty megabytes
+            // of a deployment that is already far too large, and they expose the
+            // full source tree to anyone who opens devtools.
+            sourcemap: false,
+            target: "es2025",
+            rollupOptions: {
+                input: {
+                    // Only the background page ships. Cosmos Journeyer's own game
+                    // and playground entry points pull in the whole title —
+                    // menus, star map, tutorials, audio — none of which this page
+                    // uses, and all of which would be published alongside it.
+                    background: path.resolve(__dirname, "background.html"),
+                },
+                output: {
+                    banner: licenseBanner,
+                },
+            },
+        },
+        test: {
+            environment: "jsdom",
+            include: ["**/*.{test,spec}.ts"],
+            exclude: ["node_modules", "dist", ".git", "tests/e2e/**"],
+        },
+    };
+});

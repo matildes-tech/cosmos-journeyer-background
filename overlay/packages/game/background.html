@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+        <title>Universe background — prototype</title>
+    </head>
+    <body>
+        <!-- The live scene. Never receives pointer events, so the page scrolls
+             and its text selects exactly as a normal document would. -->
+        <canvas id="universe"></canvas>
+
+        <div id="loader">
+            <div id="loader-text">Loading the universe</div>
+            <div id="loader-track"><div id="loader-bar"></div></div>
+        </div>
+
+        <!-- The Sun's own light does the work in 3D; this guarantees the page
+             actually reaches white, whatever the renderer does inside a star. -->
+        <div id="whiteout"></div>
+
+        <!-- CC-BY-4.0 requires the author be credited wherever the work is
+             shared, so the credit ships with the page rather than sitting in a
+             file next to the model. -->
+        <p id="credits">
+            Ship: <a href="https://sketchfab.com/3d-models/aircraft-decor-7e3aa0fa94ea43cb90b8c7984e724cf2"
+                rel="noopener" target="_blank">“Aircraft Decor”</a>
+            by <a href="https://sketchfab.com/jimbogies" rel="noopener" target="_blank">jimbogies</a>,
+            <a href="http://creativecommons.org/licenses/by/4.0/" rel="noopener" target="_blank">CC-BY-4.0</a>.
+            Universe by <a href="https://cosmosjourneyer.com" rel="noopener" target="_blank">Cosmos Journeyer</a> (AGPL-3.0).
+        </p>
+
+        <header id="topbar"><span class="brand">STARK</span></header>
+
+        <!-- Seven sections for seven points on the flight. Each section fills the
+             viewport at exactly the scroll position where its subject is framed,
+             so the copy and the camera never drift apart. -->
+        <main>
+            <section class="panel">
+                <div class="panel-inner">
+                    <p class="eyebrow">01</p>
+                    <h1>STARK</h1>
+                    <p class="lede">Engineering the future.</p>
+                    <p class="hint">Scroll ↓</p>
+                </div>
+            </section>
+
+            <section class="panel">
+                <div class="panel-inner">
+                    <p class="eyebrow">02</p>
+                    <h2>Our technology.</h2>
+                    <p class="lede">Placeholder copy. Mars, 3,390 km, passing to starboard.</p>
+                </div>
+            </section>
+
+            <section class="panel">
+                <div class="panel-inner">
+                    <p class="eyebrow">03</p>
+                    <h2>Our capabilities.</h2>
+                    <p class="lede">Placeholder copy. Earth — a crescent, because the Sun is ahead of us now.</p>
+                </div>
+            </section>
+
+            <section class="panel">
+                <div class="panel-inner">
+                    <p class="eyebrow">04</p>
+                    <h2>Our solutions.</h2>
+                    <p class="lede">Placeholder copy. Neptune, four times Earth across.</p>
+                </div>
+            </section>
+
+            <section class="panel">
+                <div class="panel-inner">
+                    <p class="eyebrow">05</p>
+                    <h2>Our network.</h2>
+                    <p class="lede">Placeholder copy. Saturn, rings lit from behind.</p>
+                </div>
+            </section>
+
+            <section class="panel">
+                <div class="panel-inner">
+                    <p class="eyebrow">06</p>
+                    <h2>Our scale.</h2>
+                    <p class="lede">Placeholder copy. Jupiter — the largest thing out here that is not the Sun.</p>
+                </div>
+            </section>
+
+            <section class="panel">
+                <div class="panel-inner">
+                    <p class="eyebrow">07</p>
+                    <h2>Get in touch.</h2>
+                    <p class="lede">Placeholder copy. And then the Sun takes the whole frame.</p>
+                </div>
+            </section>
+        </main>
+
+        <script type="module" src="/src/ts/background.ts"></script>
+    </body>
+</html>

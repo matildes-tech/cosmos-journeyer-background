@@ -1,0 +1,23 @@
+# Upstream checkout, if bootstrapped in place
+CJ-BG/
+
+node_modules/
+dist/
+.pnpm-store/
+
+# Deployment staging and its credentials — GATE.txt holds the basic-auth
+# password for the gated preview and must never be committed.
+deploy-stage/
+deploy-check/
+GATE.txt
+.vercel/
+
+# Harness output: screenshots, traces and recordings
+scan-out/
+scan-diag/
+scan-mobile/
+glide-out/
+*.trace
+
+.DS_Store
+*.local
