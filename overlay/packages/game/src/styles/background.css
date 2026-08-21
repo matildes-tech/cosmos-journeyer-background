@@ -50,17 +50,6 @@ body {
     outline: none;
 }
 
-#topbar {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    z-index: 3;
-    display: flex;
-    align-items: center;
-    padding: 20px 28px;
-    pointer-events: none;
-}
 
 .brand {
     font-weight: 600;
@@ -152,6 +141,14 @@ h2 {
     pointer-events: none;
 }
 
+#loader-mark {
+    width: min(28rem, 58vw);
+    height: auto;
+    margin-bottom: 2rem;
+    /* Chrome and gold on transparency; it needs nothing on black but room. */
+    filter: drop-shadow(0 0 2.5rem rgba(120, 170, 255, 0.28));
+}
+
 #loader-text {
     font-size: 12px;
     letter-spacing: 0.18em;
@@ -179,7 +176,7 @@ h2 {
 main,
 #topbar {
     opacity: 0;
-    transition: opacity 700ms ease 250ms;
+    transition: opacity 1.2s ease;
 }
 
 body.ready main,
@@ -271,15 +268,121 @@ body.ready #topbar {
         bottom: 8px;
     }
 
-    #topbar {
-        padding: 14px 18px;
-    }
-}
-
+    
 @media (prefers-reduced-motion: reduce) {
     /* The flight is scroll-driven, so it cannot be stopped without removing the
        page's whole purpose — but nothing here should also animate on its own. */
     #loader-bar {
         transition: none;
     }
+}
+
+/*  Floating navigation.
+
+    Inset and rounded rather than a full-width strip: the scene behind is the
+    subject, and a bar welded to the edges of the viewport reads as chrome
+    bolted over it. Sitting it in from the corners lets the universe run past on
+    every side.  */
+#topbar {
+    position: fixed;
+    top: 1rem;
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(1180px, calc(100% - 2rem));
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.5rem 0.5rem 0.5rem 1.15rem;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.09);
+    /* Opaque enough to stand on its own. The frosting below is an
+       enhancement, not the thing that makes the bar visible: where
+       backdrop-filter is unsupported the browser can drop the element from
+       compositing entirely, and a navigation that vanishes on one renderer is
+       not a navigation. */
+    background: rgba(9, 11, 17, 0.82);
+}
+
+@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    #topbar {
+        background: rgba(9, 11, 17, 0.5);
+        backdrop-filter: blur(16px) saturate(1.25);
+        -webkit-backdrop-filter: blur(16px) saturate(1.25);
+    }
+}
+
+#topbar .mark {
+    display: flex;
+    align-items: center;
+    flex: 0 0 auto;
+}
+
+#topbar .mark img {
+    height: 1.35rem;
+    width: auto;
+    display: block;
+}
+
+#topbar nav {
+    display: flex;
+    align-items: center;
+    gap: 0.1rem;
+    padding: 0.2rem;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.045);
+}
+
+#topbar nav a {
+    padding: 0.42rem 0.9rem;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    letter-spacing: 0.01em;
+    color: #c3cad9;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: background 0.25s ease, color 0.25s ease;
+}
+
+#topbar nav a:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+}
+
+#topbar .cta {
+    flex: 0 0 auto;
+    padding: 0.52rem 1.1rem;
+    border-radius: 999px;
+    background: #f1f4fb;
+    color: #0a0c12;
+    font-size: 0.78rem;
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: background 0.25s ease;
+}
+
+#topbar .cta:hover { background: #fff; }
+
+/*  On a phone the link group is dropped rather than folded into a menu: it is a
+    background for a page whose sections are a scroll apart, so a hamburger would
+    be a lot of machinery to reach content the reader arrives at anyway.  */
+@media (max-width: 860px) {
+    #topbar {
+        top: 0.7rem;
+        width: calc(100% - 1.4rem);
+        padding: 0.45rem 0.45rem 0.45rem 0.9rem;
+    }
+    #topbar nav { display: none; }
+    #topbar .mark img { height: 1.15rem; }
+    #topbar .cta { padding: 0.45rem 0.9rem; font-size: 0.72rem; }
+}
+
+/*  Reveal, declared here as well as in the fade-up group above.
+
+    The bar is the one piece of chrome the page has; it must not be able to end
+    up invisible because of where a rule happens to sit in the cascade.  */
+body.ready #topbar {
+    opacity: 1;
 }

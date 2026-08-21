@@ -52,6 +52,11 @@ export interface QualityProfile {
      * Much smaller in portrait: the frame is barely half as wide in angle, so a
      * swing that reads as a graceful drift on a desktop throws the ship straight
      * out of shot on a phone.
+     *
+     * Both values are well below where they started. A ship sliding across the
+     * frame is the largest moving object in view, and large moving objects are
+     * what the eye reads as self-motion — it was a significant part of why this
+     * felt uncomfortable to watch.
      */
     readonly shipSwing: number;
 }
@@ -67,7 +72,7 @@ const DESKTOP: QualityProfile = {
     shipApparentSize: 0.86,
     shipAhead: 8.5,
     shipBelow: 0.4,
-    shipSwing: 0.7,
+    shipSwing: 0.3,
 };
 
 /**
@@ -91,7 +96,7 @@ const MOBILE: QualityProfile = {
     shipApparentSize: 0.6,
     shipAhead: 11,
     shipBelow: 0.28,
-    shipSwing: 0.26,
+    shipSwing: 0.14,
 };
 
 /**

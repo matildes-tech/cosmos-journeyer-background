@@ -11,6 +11,7 @@
         <canvas id="universe"></canvas>
 
         <div id="loader">
+            <img id="loader-mark" src="./src/asset/background/starktronix-logo.png" alt="Starktronix" />
             <div id="loader-text">Loading the universe</div>
             <div id="loader-track"><div id="loader-bar"></div></div>
         </div>
@@ -32,13 +33,25 @@
             <a href="https://github.com/matildes-tech/cosmos-journeyer-background" rel="noopener" target="_blank">source</a>.
         </p>
 
-        <header id="topbar"><span class="brand">STARK</span></header>
+        <header id="topbar">
+            <a class="mark" href="#hero" aria-label="Starktronix">
+                <img src="./src/asset/background/starktronix-logo.png" alt="Starktronix" />
+            </a>
+            <nav aria-label="Sections">
+                <a href="#technology">Technology</a>
+                <a href="#capabilities">Capabilities</a>
+                <a href="#solutions">Solutions</a>
+                <a href="#network">Network</a>
+                <a href="#scale">Scale</a>
+            </nav>
+            <a class="cta" href="#contact">Get in touch</a>
+        </header>
 
         <!-- Seven sections for seven points on the flight. Each section fills the
              viewport at exactly the scroll position where its subject is framed,
              so the copy and the camera never drift apart. -->
         <main>
-            <section class="panel">
+            <section class="panel" id="hero">
                 <div class="panel-inner">
                     <p class="eyebrow">01</p>
                     <h1>STARK</h1>
@@ -47,7 +60,7 @@
                 </div>
             </section>
 
-            <section class="panel">
+            <section class="panel" id="technology">
                 <div class="panel-inner">
                     <p class="eyebrow">02</p>
                     <h2>Our technology.</h2>
@@ -55,7 +68,7 @@
                 </div>
             </section>
 
-            <section class="panel">
+            <section class="panel" id="capabilities">
                 <div class="panel-inner">
                     <p class="eyebrow">03</p>
                     <h2>Our capabilities.</h2>
@@ -63,7 +76,7 @@
                 </div>
             </section>
 
-            <section class="panel">
+            <section class="panel" id="solutions">
                 <div class="panel-inner">
                     <p class="eyebrow">04</p>
                     <h2>Our solutions.</h2>
@@ -71,7 +84,7 @@
                 </div>
             </section>
 
-            <section class="panel">
+            <section class="panel" id="network">
                 <div class="panel-inner">
                     <p class="eyebrow">05</p>
                     <h2>Our network.</h2>
@@ -79,7 +92,7 @@
                 </div>
             </section>
 
-            <section class="panel">
+            <section class="panel" id="scale">
                 <div class="panel-inner">
                     <p class="eyebrow">06</p>
                     <h2>Our scale.</h2>
@@ -87,7 +100,7 @@
                 </div>
             </section>
 
-            <section class="panel">
+            <section class="panel" id="contact">
                 <div class="panel-inner">
                     <p class="eyebrow">07</p>
                     <h2>Get in touch.</h2>

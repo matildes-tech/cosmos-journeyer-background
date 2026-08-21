@@ -42,7 +42,6 @@ const params = new URLSearchParams(window.location.search);
 const canvas = document.getElementById("universe") as HTMLCanvasElement;
 const loader = document.getElementById("loader") as HTMLDivElement;
 const loaderBar = document.getElementById("loader-bar") as HTMLDivElement;
-const loaderText = document.getElementById("loader-text") as HTMLDivElement;
 const whiteout = document.getElementById("whiteout") as HTMLDivElement;
 
 const profile = detectProfile();
@@ -78,7 +77,10 @@ const progressMonitor = new LoadingProgressMonitor();
 progressMonitor.addProgressCallback((started, completed) => {
     const fraction = started === 0 ? 0 : completed / started;
     loaderBar.style.transform = `scaleX(${fraction})`;
-    loaderText.textContent = `Loading the universe — ${completed}/${started}`;
+    // No counter. The bar already shows how far along it is, and a pair of
+    // numbers climbing to ninety-four reads as a machine reporting on itself
+    // rather than as an invitation.
+    void completed;
 });
 
 const { scene, starSystemView } = await createUniverseBackground(engine, progressMonitor, layout);

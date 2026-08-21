@@ -21,7 +21,7 @@ import { type PointerInfluence } from "./pointerInfluence";
  * so most of the smoothing already happened upstream. Damping hard a second
  * time here would only add lag between the copy and the world it sits in.
  */
-const HALF_LIFE = 0.045;
+const HALF_LIFE = 0.085;
 
 /**
  * Ceiling on how fast the camera may turn, in radians per second.
@@ -36,7 +36,7 @@ const HALF_LIFE = 0.045;
  * that conflict in a way translation does not. It is therefore the one quantity
  * that must not be left in the hands of the scroll wheel.
  */
-const MAX_TURN_RATE = (20 * Math.PI) / 180;
+const MAX_TURN_RATE = (11 * Math.PI) / 180;
 
 /**
  * Seconds for the camera to close half its remaining angle to the authored aim.
@@ -46,7 +46,7 @@ const MAX_TURN_RATE = (20 * Math.PI) / 180;
  * limited and unlimited the instant demand dropped, which reads as a flinch at
  * the end of every fast turn.
  */
-const TURN_HALF_LIFE = 0.09;
+const TURN_HALF_LIFE = 0.17;
 
 /**
  * Drives Cosmos Journeyer's own camera transform from scroll position.

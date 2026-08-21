@@ -152,7 +152,7 @@ const RISE_FACTOR = 0.8;
  * to re-establish it. What is left is enough to feel the turns without the frame
  * appearing to tumble.
  */
-const BANK_MAX = 0.06;
+const BANK_MAX = 0.03;
 
 /**
  * The widest the nose ever swings off the corridor axis, in radians.
@@ -166,7 +166,7 @@ const BANK_MAX = 0.06;
  * scale instead makes heading a smooth, bounded function of scroll: the weave
  * still reads, and the turn eases in and out of every planet.
  */
-const MAX_HEADING_SWING = (11 * Math.PI) / 180;
+const MAX_HEADING_SWING = (7 * Math.PI) / 180;
 
 /** Half-width of the window the bank is averaged over, as a share of total scroll. */
 const BANK_SMOOTHING = 0.035;
