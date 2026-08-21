@@ -511,3 +511,123 @@ a.hud-key:hover { color: #fff; }
         transform: translateY(-4.2rem);
     }
 }
+
+
+/*  ---------------------------------------------------------------------------
+    Headline top left, supporting paragraph bottom right.
+
+    The two blocks are pushed into opposite corners so the middle of the frame
+    stays clear for the flight, and so the eye travels across the render on its
+    way from one to the other rather than reading past it.
+    --------------------------------------------------------------------------- */
+
+.panel-inner {
+    position: sticky;
+    top: 0;
+    height: 100svh;
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    display: block;
+    pointer-events: none;
+}
+
+.headline {
+    position: absolute;
+    top: 7.5rem;
+    left: 2.6rem;
+    margin: 0;
+    max-width: 14ch;
+    font-size: clamp(2.6rem, 5.6vw, 5rem);
+    line-height: 0.94;
+    letter-spacing: -0.035em;
+    font-weight: 700;
+    color: #fff;
+    text-wrap: balance;
+}
+
+.lede {
+    position: absolute;
+    right: 2.6rem;
+    bottom: 6.5rem;
+    width: min(34ch, 42vw);
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1.1rem;
+    pointer-events: auto;
+}
+
+.lede-mono {
+    margin: 0;
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.66rem;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.38);
+}
+
+.lede-body {
+    margin: 0;
+    font-size: clamp(1rem, 1.25vw, 1.18rem);
+    line-height: 1.5;
+    color: rgba(255, 255, 255, 0.82);
+    text-wrap: pretty;
+}
+
+/*  A pill rather than a bare link: at this size against a moving render, an
+    underlined word is easy to miss and hard to hit.  */
+.lede-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.7rem;
+    padding: 0.6rem 1.15rem;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    background: rgba(255, 255, 255, 0.07);
+    color: #eef1f8;
+    font-size: 0.8rem;
+    text-decoration: none;
+    transition: background 0.25s ease, border-color 0.25s ease;
+}
+
+.lede-cta:hover {
+    background: rgba(255, 255, 255, 0.14);
+    border-color: rgba(255, 255, 255, 0.28);
+}
+
+#credits {
+    left: 2.6rem;
+    right: auto;
+    bottom: 1.5rem;
+    max-width: 30rem;
+    text-align: left;
+    transform: none;
+}
+
+/*  On a phone the two corners become one column: there is no width to hold a
+    headline on one side and a paragraph on the other.  */
+@media (max-width: 860px) {
+    .headline {
+        top: 6rem;
+        left: 1.4rem;
+        right: 1.4rem;
+        max-width: none;
+        font-size: clamp(2.2rem, 11vw, 3.2rem);
+    }
+    .lede {
+        left: 1.4rem;
+        right: 1.4rem;
+        bottom: 7rem;
+        width: auto;
+        gap: 0.85rem;
+    }
+    .lede-body { font-size: 0.98rem; }
+    #credits {
+        left: 1.4rem;
+        right: 1.4rem;
+        max-width: none;
+        font-size: 9px;
+    }
+}
