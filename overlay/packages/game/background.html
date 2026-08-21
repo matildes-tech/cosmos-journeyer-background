@@ -50,64 +50,77 @@
         <!-- Seven sections for seven points on the flight. Each section fills the
              viewport at exactly the scroll position where its subject is framed,
              so the copy and the camera never drift apart. -->
+        <!-- Text is pinned to the edges of the frame and to one mid-screen
+             line, leaving the centre entirely free for the flight. The copy is
+             placeholder; the structure is the point. -->
         <main>
             <section class="panel" id="hero">
                 <div class="panel-inner">
-                    <p class="eyebrow">01</p>
-                    <h1>STARK</h1>
-                    <p class="lede">Engineering the future.</p>
-                    <p class="hint">Scroll ↓</p>
+                    <p class="hud-hero">Engineering<br />the future.</p>
+                    <p class="hud-hint">Scroll &darr;</p>
                 </div>
             </section>
-
             <section class="panel" id="technology">
                 <div class="panel-inner">
-                    <p class="eyebrow">02</p>
-                    <h2>Our technology.</h2>
-                    <p class="lede">Placeholder copy. Mars, 3,390 km, passing to starboard.</p>
+                    <span class="hud-name">MARS</span>
+                    <span class="hud-meta">TELLURIC · 3,390 KM</span>
+                    <span class="hud-note">PASSING TO STARBOARD</span>
+                    <span class="hud-index">01 / 06</span>
                 </div>
             </section>
-
             <section class="panel" id="capabilities">
                 <div class="panel-inner">
-                    <p class="eyebrow">03</p>
-                    <h2>Our capabilities.</h2>
-                    <p class="lede">Placeholder copy. Earth — a crescent, because the Sun is ahead of us now.</p>
+                    <span class="hud-name">EARTH</span>
+                    <span class="hud-meta">TELLURIC · 6,371 KM</span>
+                    <span class="hud-note">CRESCENT · SUN AHEAD</span>
+                    <span class="hud-index">02 / 06</span>
                 </div>
             </section>
-
             <section class="panel" id="solutions">
                 <div class="panel-inner">
-                    <p class="eyebrow">04</p>
-                    <h2>Our solutions.</h2>
-                    <p class="lede">Placeholder copy. Neptune, four times Earth across.</p>
+                    <span class="hud-name">NEPTUNE</span>
+                    <span class="hud-meta">ICE GIANT · 24,622 KM</span>
+                    <span class="hud-note">FOUR EARTHS ACROSS</span>
+                    <span class="hud-index">03 / 06</span>
                 </div>
             </section>
-
             <section class="panel" id="network">
                 <div class="panel-inner">
-                    <p class="eyebrow">05</p>
-                    <h2>Our network.</h2>
-                    <p class="lede">Placeholder copy. Saturn, rings lit from behind.</p>
+                    <span class="hud-name">SATURN</span>
+                    <span class="hud-meta">GAS GIANT · 58,232 KM</span>
+                    <span class="hud-note">RINGS LIT FROM BEHIND</span>
+                    <span class="hud-index">04 / 06</span>
                 </div>
             </section>
-
             <section class="panel" id="scale">
                 <div class="panel-inner">
-                    <p class="eyebrow">06</p>
-                    <h2>Our scale.</h2>
-                    <p class="lede">Placeholder copy. Jupiter — the largest thing out here that is not the Sun.</p>
+                    <span class="hud-name">JUPITER</span>
+                    <span class="hud-meta">GAS GIANT · 69,911 KM</span>
+                    <span class="hud-note">LARGEST BODY ON ROUTE</span>
+                    <span class="hud-index">05 / 06</span>
                 </div>
             </section>
-
             <section class="panel" id="contact">
                 <div class="panel-inner">
-                    <p class="eyebrow">07</p>
-                    <h2>Get in touch.</h2>
-                    <p class="lede">Placeholder copy. And then the Sun takes the whole frame.</p>
+                    <span class="hud-name">SOL</span>
+                    <span class="hud-meta">G-TYPE · 695,508 KM</span>
+                    <span class="hud-note">TERMINUS</span>
+                    <span class="hud-index">06 / 06</span>
                 </div>
             </section>
         </main>
+
+        <!-- Persistent HUD furniture, outside the scrolling sections so it
+             never moves. -->
+        <div id="hud-corner">
+            <span class="hud-key">[&middot;] FLIGHT</span>
+            <span class="hud-key dim">[ ] SOL SYSTEM</span>
+            <span class="hud-key dim">[ ] INBOUND</span>
+        </div>
+        <div id="hud-corner-right">
+            <a class="hud-key" href="#contact">[SITE]</a>
+            <a class="hud-key" href="#contact">[EMAIL]</a>
+        </div>
 
         <script type="module" src="/src/ts/background.ts"></script>
     </body>

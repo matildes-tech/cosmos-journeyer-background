@@ -388,3 +388,126 @@ body.ready #topbar {
 body.ready #topbar {
     opacity: 1;
 }
+
+
+/*  ---------------------------------------------------------------------------
+    Edge-anchored HUD.
+
+    All of the page's text lives on the frame's edges and on one mid-screen line,
+    so the centre stays clear for the flight. Small, monospaced, uppercase and
+    widely tracked: at this size type reads as instrumentation rather than as
+    layout competing with the render behind it.
+    --------------------------------------------------------------------------- */
+
+.panel-inner {
+    position: sticky;
+    top: 0;
+    height: 100svh;
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    display: block;
+    pointer-events: none;
+}
+
+.hud-name,
+.hud-meta,
+.hud-note,
+.hud-index,
+.hud-key {
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: #aab3c6;
+    white-space: nowrap;
+}
+
+/*  The mid-line. Everything on it shares one vertical position, which is what
+    makes four separate labels read as a single instrument reading.  */
+.hud-name,
+.hud-meta,
+.hud-note,
+.hud-index {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.hud-name { left: 2.2rem; color: #f2f5fb; }
+.hud-meta { left: 25%; }
+.hud-note { left: 50%; transform: translate(-50%, -50%); }
+.hud-index { right: 2.2rem; }
+
+/*  The hero carries no label row: at the top of the page the render is the
+    statement, exactly as it is on the reference.  */
+.hud-hero {
+    position: absolute;
+    left: 2.2rem;
+    bottom: 6.5rem;
+    margin: 0;
+    max-width: 20ch;
+    font-size: clamp(2rem, 4.2vw, 3.4rem);
+    line-height: 1;
+    letter-spacing: -0.03em;
+    font-weight: 600;
+    color: #f4f6fb;
+}
+
+.hud-hint {
+    position: absolute;
+    left: 2.2rem;
+    bottom: 3.4rem;
+    margin: 0;
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: #8b94a8;
+}
+
+/*  Corner furniture sits outside the scrolling sections, so it never moves.  */
+#hud-corner,
+#hud-corner-right {
+    position: fixed;
+    bottom: 1.6rem;
+    z-index: 6;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    pointer-events: none;
+}
+
+#hud-corner { left: 2.2rem; }
+#hud-corner-right { right: 2.2rem; align-items: flex-end; pointer-events: auto; }
+
+.hud-key { font-size: 0.68rem; letter-spacing: 0.18em; text-decoration: none; }
+.hud-key.dim { color: #6d768c; }
+a.hud-key:hover { color: #fff; }
+
+/*  The licence credit moves up out of the corner the HUD now occupies.  */
+#credits {
+    bottom: 1.6rem;
+    right: 2.2rem;
+    left: auto;
+    max-width: 28rem;
+    transform: translateY(-3.4rem);
+}
+
+@media (max-width: 860px) {
+    .hud-meta { display: none; }
+    .hud-name { left: 1.25rem; }
+    .hud-index { right: 1.25rem; }
+    .hud-hero,
+    .hud-hint { left: 1.25rem; }
+    #hud-corner { left: 1.25rem; }
+    #hud-corner-right { right: 1.25rem; }
+    #credits {
+        left: 1.25rem;
+        right: 1.25rem;
+        max-width: none;
+        text-align: left;
+        transform: translateY(-4.2rem);
+    }
+}
