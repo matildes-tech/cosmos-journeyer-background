@@ -37,6 +37,35 @@ const DEFAULT_HEADING = 0;
 // galactic band closer, but a cubemap gains no detail when magnified — it only
 // goes soft, which is what made the sky stop looking like the game's.
 
+/**
+ * Pointer Lock shim, installed before anything else runs.
+ *
+ * Safari on iOS does not implement the Pointer Lock API at all — no
+ * `document.exitPointerLock`, no `Element.requestPointerLock`. Cosmos Journeyer
+ * calls exitPointerLock while it sets the player up, which on a phone throws a
+ * TypeError in the middle of initialisation and leaves the page on its loading
+ * screen forever with nothing in the console to explain it.
+ *
+ * Pointer lock is meaningless here in any case: this page never captures the
+ * cursor, so the calls only need to not throw.
+ */
+(() => {
+    // Written through an index signature: the DOM typings declare these as
+    // required members with specific signatures, so assigning a no-op to them
+    // through their real types does not compile.
+    const doc = document as unknown as Record<string, unknown>;
+    if (typeof doc["exitPointerLock"] !== "function") {
+        doc["exitPointerLock"] = () => undefined;
+    }
+    if (!("pointerLockElement" in document)) {
+        doc["pointerLockElement"] = null;
+    }
+    const proto = Element.prototype as unknown as Record<string, unknown>;
+    if (typeof proto["requestPointerLock"] !== "function") {
+        proto["requestPointerLock"] = () => undefined;
+    }
+})();
+
 const params = new URLSearchParams(window.location.search);
 
 const canvas = document.getElementById("universe") as HTMLCanvasElement;
