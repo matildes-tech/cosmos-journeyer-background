@@ -41,7 +41,7 @@ objects, copies `overlay/` over the top, and installs. Then:
     pnpm --filter game build    # dist/
 
 Edit inside the checkout, where it runs; `./sync.sh [checkout]` copies the overlay
-back here.
+back here. Both default to a `checkout/` sibling of this repository.
 
 The commit is pinned deliberately. The overlay reaches into upstream internals —
 `StarSystemView`, the post-process manager, the chunk forge — and a later upstream

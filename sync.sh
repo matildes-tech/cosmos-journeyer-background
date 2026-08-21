@@ -8,7 +8,7 @@
 set -euo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
-WORK="${1:-$HOME/Desktop/CJ-BG}"
+WORK="${1:-$HERE/../checkout}"
 
 if [ ! -d "$WORK" ]; then
   echo "No checkout at $WORK — pass its path, or run ./bootstrap.sh first." >&2
