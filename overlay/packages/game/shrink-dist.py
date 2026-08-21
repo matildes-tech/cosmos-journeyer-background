@@ -15,11 +15,18 @@ DIST = sys.argv[1]
 MAX_EDGE = int(sys.argv[2]) if len(sys.argv) > 2 else 512
 FLOOR = 400_000  # leave anything already small alone
 
+#  Never touch the brand mark. It is displayed at up to 46rem — larger than the
+#  cap this script enforces — so shrinking it visibly softens the one asset on
+#  the page whose crispness anyone will actually notice.
+KEEP = ("starktronix-logo",)
+
 saved = 0
 touched = 0
 for root, _, files in os.walk(DIST):
     for name in files:
         if not name.lower().endswith(('.webp', '.png', '.jpg', '.jpeg')):
+            continue
+        if any(k in name for k in KEEP):
             continue
         path = os.path.join(root, name)
         before = os.path.getsize(path)

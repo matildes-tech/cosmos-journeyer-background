@@ -73,7 +73,9 @@ export async function createUniverseBackground(
     engine: AbstractEngine,
     progressMonitor: ILoadingProgressMonitor,
     layout: CorridorLayout,
+    onStage: (stage: string) => void = () => {},
 ): Promise<UniverseBackground> {
+    onStage("i18n");
     await initI18n();
 
     // Cosmos Journeyer appends its UI containers straight to <body>, and relies
@@ -85,6 +87,7 @@ export async function createUniverseBackground(
     const bodyChildrenBefore = new Set(Array.from(document.body.children));
 
     const systemModel = getCorridorSystemModel(layout);
+    onStage("universe");
     const universeBackend = new UniverseBackend(systemModel);
     const player = Player.Default(universeBackend);
 
@@ -99,11 +102,13 @@ export async function createUniverseBackground(
     scene.useRightHandedSystem = true;
     scene.clearColor.set(0, 0, 0, 1);
 
+    onStage("physics");
     const havokPlugin = new HavokPlugin(true, await HavokPhysics());
     havokPlugin.setVelocityLimits(10_000, 10_000);
     scene.enablePhysics(Vector3.Zero(), havokPlugin);
     const physicsEngine = getPhysicsEngineV2(scene);
 
+    onStage("assets");
     const assets = await loadRenderingAssets(scene, progressMonitor);
 
     // Coarser terrain, and less of it.
@@ -116,6 +121,7 @@ export async function createUniverseBackground(
     Settings.VERTEX_RESOLUTION = 16;
     Settings.CHUNK_RENDERING_DISTANCE_MULTIPLIER = 1;
 
+    onStage("terrain-workers");
     const chunkForgeResult = await ChunkForgeWorkers.New(Settings.VERTEX_RESOLUTION);
     if (!chunkForgeResult.success) {
         throw chunkForgeResult.error;
@@ -136,16 +142,19 @@ export async function createUniverseBackground(
         progressMonitor,
     );
 
+    onStage("player");
     await starSystemView.resetPlayer(player);
 
     // Their own switches for the game layer, used rather than reaching into the DOM.
     starSystemView.setUIEnabled(false);
 
+    onStage("star-system");
     await starSystemView.loadStarSystem(universeBackend.fallbackSystem);
     starSystemView.initStarSystem(0);
 
     // The free camera, not the spaceship: nothing should fly the ship here, and
     // the timeline needs a transform it can write to directly.
+    onStage("controls");
     await starSystemView.switchToDefaultControls(false);
 
     starSystemView.hideHtmlUI();
