@@ -10,7 +10,7 @@ set -euo pipefail
 UPSTREAM="https://github.com/BarthPaleologue/CosmosJourneyer.git"
 SHA="$(tr -d '[:space:]' < "$(dirname "$0")/UPSTREAM")"
 HERE="$(cd "$(dirname "$0")" && pwd)"
-TARGET="${1:-$HOME/Desktop/CJ-BG}"
+TARGET="${1:-$HERE/../checkout}"
 
 if [ -e "$TARGET" ]; then
   echo "Refusing to overwrite existing $TARGET — pass a different path." >&2
