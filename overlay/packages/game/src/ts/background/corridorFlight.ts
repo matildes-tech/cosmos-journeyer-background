@@ -27,7 +27,7 @@ export interface CameraState {
  * noticed them. A small value keeps each body in shot through the pass while the
  * flight path itself stays dead straight — the camera looks, it does not steer.
  */
-const GLANCE = 0.22;
+const GLANCE = 0.14;
 
 /** Arbitrary distance for the look-at point; only its direction matters. */
 const LOOK_AHEAD = 1e9;

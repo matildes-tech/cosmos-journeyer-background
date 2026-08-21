@@ -66,7 +66,7 @@ const ASIDE_HALF_LIFE = 0.55;
  * It also keeps the ship clear of the planets without being told to. The camera
  * turns *toward* whatever it is passing, so the ship always slides the other way.
  */
-const TURN_RESPONSE = 1.45;
+const TURN_RESPONSE = 0.9;
 
 /** Seconds of low-pass on the camera's measured turn rate before the ship reacts to it. */
 const TURN_SMOOTHING = 0.05;
@@ -93,7 +93,7 @@ const WANDER_RATE_B = 0.1013;
  * being tugged rather than a ship flying. A spring accelerates into the move and
  * decelerates out of it, and critically damped it does so without overshooting.
  */
-const GLIDE_FREQUENCY = 0.95;
+const GLIDE_FREQUENCY = 0.5;
 
 /**
  * Fixed integration step for the spring, in seconds.
@@ -111,7 +111,7 @@ const GLIDE_STEP = 1 / 120;
 let APPARENT_SIZE = 0.86;
 
 /** The ship rolls harder than the camera does, so it reads as the thing doing the flying. */
-const BANK_GAIN = 2.5;
+const BANK_GAIN = 1.3;
 
 /** Seconds for the ship's roll to close half the gap to the path's — it leads, the camera follows. */
 const BANK_HALF_LIFE = 0.22;
@@ -125,7 +125,7 @@ const BANK_HALF_LIFE = 0.22;
  * the ship's own lights — read as polish — while the metal underneath keeps
  * showing almost nothing of the sky.
  */
-const CLEAR_COAT_ROUGHNESS = 0.018;
+const CLEAR_COAT_ROUGHNESS = 0.011;
 
 /**
  * Multiplies the specular response without touching diffuse or reflections.
@@ -135,7 +135,9 @@ const CLEAR_COAT_ROUGHNESS = 0.018;
  * contributes. Environment intensity goes the other way, down, so the hull
  * shines while showing even less of the universe than before.
  */
-const SPECULAR_INTENSITY = 3.2;
+// The shine comes from here instead: a hard, bright specular response to the
+// ship's own lights, which is a highlight rather than a reflection.
+const SPECULAR_INTENSITY = 4.6;
 
 /** A second light from behind and to the side, purely to catch the edges. */
 const RIM_INTENSITY = 7.0;
@@ -219,8 +221,11 @@ const FILL_INTENSITY = 1.15;
  * back, enough that the surface takes diffuse light and reads as the hull it is,
  * while still catching the nebulae in its reflections.
  */
-const METALLIC = 0.22;
-const ROUGHNESS = 0.035;
+// Low metalness is what keeps the surroundings out of the paintwork: a metal
+// surface takes its colour almost entirely from what it reflects, and out here
+// that is the universe. A dielectric picks up highlights instead.
+const METALLIC = 0.09;
+const ROUGHNESS = 0.026;
 
 /**
  * How much brighter the hull's reflections are than the sky that supplies them.
@@ -231,7 +236,10 @@ const ROUGHNESS = 0.035;
  * a tight, bright hotspot that travels over the panels as it banks — with only
  * enough environment for the surroundings to register faintly.
  */
-const ENVIRONMENT_INTENSITY = 1.1;
+// How much of the surrounding scene appears in the hull. Held right down —
+// this is the setting that decides whether it looks lacquered or looks like a
+// mirror ball with stars in it.
+const ENVIRONMENT_INTENSITY = 0.28;
 
 /** Gentle idle motion so it never looks welded to the lens. */
 const DRIFT_PITCH = 0.014;
@@ -340,6 +348,7 @@ export class ShipModel {
 
         for (const mesh of lit) {
             const material = mesh.material as unknown as {
+                albedoColor?: { set: (r: number, g: number, b: number) => void };
                 metallic?: number | null;
                 roughness?: number | null;
                 environmentIntensity?: number;
@@ -348,6 +357,11 @@ export class ShipModel {
                 specularIntensity?: number;
             } | null;
             if (material !== null && "metallic" in material) {
+                // The base colour has to be set, not inherited. The model ships
+                // a dark one and relies on a mirror finish to look bright; with
+                // the reflections turned down so the universe stays out of the
+                // paintwork, an unset albedo simply leaves a black silhouette.
+                material.albedoColor?.set(0.62, 0.65, 0.72);
                 material.metallic = METALLIC;
                 material.roughness = ROUGHNESS;
                 material.environmentIntensity = ENVIRONMENT_INTENSITY;

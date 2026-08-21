@@ -10,7 +10,7 @@ import { lerpSmooth } from "@/utils/math";
  * it to go. This is the whole feel of the thing: too short and the wheel still
  * reads as discrete notches, too long and the page swims behind the pointer.
  */
-const HALF_LIFE = 0.035;
+const HALF_LIFE = 0.062;
 
 /**
  * Wheel delta multiplier.
