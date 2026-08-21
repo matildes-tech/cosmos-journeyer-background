@@ -48,13 +48,17 @@ objects, copies `overlay/` over the top, and installs. Then:
     pnpm --filter game build    # dist/
     node packages/game/prune-dist.mjs           # drop unused audio
     python3 packages/game/shrink-dist.py packages/game/dist 512   # downscale textures
+    python3 packages/game/stub-glb.py packages/game/dist          # strip GLB textures
 
 The last step is not optional for a deployed build. Upstream ships 4K terrain
 materials because you can land on its planets and walk around; this page never
 gets nearer than a few planetary radii, where a 4096px albedo and a 512px one
 are the same handful of pixels. Measured, the page transferred **148 MB** before
 that step and **41 MB** after, which is the difference between loading on a phone
-and not.
+and not. `stub-glb.py` does the same for the models — a rock, a tree, an
+astronaut, none of which a flyby ever shows — replacing their embedded textures
+with a single pixel while leaving every node and mesh in place, because the
+loader looks meshes up by name. Together: **153 MB of build becomes 31 MB.**
 
 Edit inside the checkout, where it runs; `./sync.sh [checkout]` copies the overlay
 back here. Both default to a `checkout/` sibling of this repository.

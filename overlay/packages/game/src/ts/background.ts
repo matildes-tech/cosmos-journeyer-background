@@ -45,6 +45,46 @@ const loaderBar = document.getElementById("loader-bar") as HTMLDivElement;
 const whiteout = document.getElementById("whiteout") as HTMLDivElement;
 const endcard = document.getElementById("endcard") as HTMLElement;
 
+/**
+ * Surfaces a failure instead of leaving the loader spinning forever.
+ *
+ * When this page fails on a device we cannot attach a debugger to, the only
+ * symptom is "it stays on the loading screen" — which is indistinguishable
+ * between a stalled download, an out-of-memory kill and a thrown exception.
+ * Writing the reason onto the loader turns an unreportable hang into something
+ * a screenshot can diagnose.
+ */
+const loaderNote = document.getElementById("loader-note") as HTMLElement | null;
+let sceneReady = false;
+
+function reportStall(reason: string): void {
+    if (sceneReady || loaderNote === null) return;
+    const gl = (() => {
+        try {
+            return document.createElement("canvas").getContext("webgl2") !== null ? "webgl2" : "no webgl2";
+        } catch {
+            return "webgl blocked";
+        }
+    })();
+    const memory = (navigator as unknown as { deviceMemory?: number }).deviceMemory;
+    loaderNote.textContent = `${reason} · ${gl} · ${window.innerWidth}×${window.innerHeight}${
+        memory === undefined ? "" : ` · ${String(memory)}GB`
+    }`;
+    loaderNote.style.opacity = "1";
+}
+
+window.addEventListener("error", (event) => {
+    reportStall(`Error: ${String(event.message).slice(0, 120)}`);
+});
+window.addEventListener("unhandledrejection", (event) => {
+    reportStall(`Failed: ${String((event as PromiseRejectionEvent).reason).slice(0, 120)}`);
+});
+// If nothing has thrown and it still has not started, it is almost certainly
+// weight or memory rather than a bug in the page.
+window.setTimeout(() => {
+    reportStall("Still loading — the scene has not started");
+}, 30000);
+
 const profile = detectProfile();
 
 const headingParam = Number(params.get("heading"));
@@ -339,7 +379,9 @@ scene.onBeforeRenderObservable.add(
         // The card arrives only once the frame is genuinely white, and comes in
         // over the back half of that curve — otherwise it reads as text laid on
         // top of the Sun rather than as the page resolving into a footer.
-        const card = Math.max(0, (white - 0.55) / 0.45);
+        // Later than the white-out itself, so the frame reaches white, holds a
+        // moment, and only then crossfades to the dark card.
+        const card = Math.max(0, (white - 0.72) / 0.28);
         endcard.style.opacity = String(card);
         endcard.style.pointerEvents = card > 0.85 ? "auto" : "none";
     },
@@ -357,6 +399,7 @@ window.addEventListener("resize", () => {
     engine.resize(true);
 });
 
+sceneReady = true;
 loader.classList.add("done");
 document.body.classList.add("ready");
 
