@@ -124,7 +124,7 @@ const SUN_GLOW_START = 0.004;
 const SUN_GLOW_END = 0.26;
 
 /** Below this much of the journey the Sun is a plain point of light: no glow, no flare. */
-const SUN_RAMP_BEGINS = 0.45;
+const SUN_RAMP_BEGINS = 0.55;
 
 /** Ramp: nothing for the first stretch, then rising steeply as the Sun is closed on. */
 const sunRamp = (p: number): number => {

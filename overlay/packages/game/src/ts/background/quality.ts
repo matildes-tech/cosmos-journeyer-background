@@ -26,8 +26,14 @@ export interface QualityProfile {
      */
     readonly approachFactor: number;
     /**
-     * Multiplies every closest approach. Below 1 the flight passes nearer, which
-     * is how the bodies keep their share of the frame on the game's wide lens.
+     * Multiplies every closest approach.
+     *
+     * These used to halve it, which put the camera around two radii out and let
+     * a body subtend as much as 84 degrees. Something filling the visual field
+     * while it sweeps is the strongest driver of visually-induced self-motion
+     * there is, and it was a large part of why the flight was uncomfortable.
+     * Bodies are now framed at roughly 25-35 degrees: still dominant in the
+     * composition, no longer wrapped around the viewer.
      */
     readonly passScale: number;
     /** How many of the nebulae to build. A phone cannot march four of them. */
@@ -54,7 +60,7 @@ const DESKTOP: QualityProfile = {
     tier: "desktop",
     maxPixelRatio: 2,
     approachFactor: 2.6,
-    passScale: 0.5,
+    passScale: 1,
     nebulaLimit: 4,
     nebulaStepScale: 1,
     dustInstances: 3200,
@@ -78,7 +84,7 @@ const MOBILE: QualityProfile = {
     tier: "mobile",
     maxPixelRatio: 1.25,
     approachFactor: 4.8,
-    passScale: 0.62,
+    passScale: 1.15,
     nebulaLimit: 2,
     nebulaStepScale: 0.55,
     dustInstances: 1100,

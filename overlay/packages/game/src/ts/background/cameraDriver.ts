@@ -3,7 +3,7 @@
 //  Cosmos Journeyer is licensed AGPL-3.0-only; this file is part of a derived
 //  work and carries the same licence.
 
-import { Vector3 } from "@babylonjs/core/Maths/math.vector";
+import { Quaternion, Vector3 } from "@babylonjs/core/Maths/math.vector";
 import { type TransformNode } from "@babylonjs/core/Meshes/transformNode";
 
 import { setRotationQuaternion } from "@/frontend/helpers/transform";
@@ -22,6 +22,31 @@ import { type PointerInfluence } from "./pointerInfluence";
  * time here would only add lag between the copy and the world it sits in.
  */
 const HALF_LIFE = 0.045;
+
+/**
+ * Ceiling on how fast the camera may turn, in radians per second.
+ *
+ * The corridor's aim is a pure function of scroll position, so without a ceiling
+ * the wheel sets angular velocity directly and without bound. Measured on the
+ * same page and machine, a gentle scroll turned the camera at about 5 deg/s and
+ * a brisk one peaked at 572 — more than a full rotation per second.
+ *
+ * Rotation is what makes a flight sickening, far more than speed: the eye
+ * reports self-motion the inner ear cannot corroborate, and rotation sharpens
+ * that conflict in a way translation does not. It is therefore the one quantity
+ * that must not be left in the hands of the scroll wheel.
+ */
+const MAX_TURN_RATE = (20 * Math.PI) / 180;
+
+/**
+ * Seconds for the camera to close half its remaining angle to the authored aim.
+ *
+ * Below the ceiling the camera eases instead of tracking exactly, so that
+ * crossing into the ceiling is continuous. A bare clamp would snap between
+ * limited and unlimited the instant demand dropped, which reads as a flinch at
+ * the end of every fast turn.
+ */
+const TURN_HALF_LIFE = 0.09;
 
 /**
  * Drives Cosmos Journeyer's own camera transform from scroll position.
@@ -50,6 +75,11 @@ export class CameraDriver {
     private pitchRate = 0;
     private readonly previousForward = Vector3.Zero();
     private hasPreviousForward = false;
+
+    /** The rate-limited aim actually given to the camera, and scratch for the slerp. */
+    private readonly aim = Quaternion.Identity();
+    private readonly aimScratch = Quaternion.Identity();
+    private hasAim = false;
 
     constructor(flight: CorridorFlight, pointer: PointerInfluence, transform: TransformNode) {
         this.flight = flight;
@@ -107,9 +137,14 @@ export class CameraDriver {
 
         this.transform.setAbsolutePosition(state.position);
 
+        // Position follows the corridor exactly; only the aim is rate limited.
+        // Travelling fast is comfortable, being spun is not, so the flight keeps
+        // its responsiveness to the wheel and gives up only its ability to whip.
+        const aim = this.limitTurn(state.rotation, deltaSeconds);
+
         // Post-multiplying applies the pointer offset in the camera's own frame,
         // so it reads as glancing around rather than orbiting the subject.
-        setRotationQuaternion(this.transform, state.rotation.multiply(this.pointer.getOffset()));
+        setRotationQuaternion(this.transform, aim.multiply(this.pointer.getOffset()));
 
         this.transform.computeWorldMatrix(true);
 
@@ -128,6 +163,40 @@ export class CameraDriver {
             this.hasPreviousForward = true;
         }
         this.previousForward.copyFrom(forward);
+    }
+
+    /**
+     * Moves the aim toward the authored one, easing, but never faster than
+     * MAX_TURN_RATE.
+     *
+     * Taking the smaller of the eased rate and the ceiling — rather than
+     * clamping the eased result — keeps angular velocity continuous across the
+     * point where the ceiling starts binding.
+     */
+    private limitTurn(target: Quaternion, deltaSeconds: number): Quaternion {
+        if (!this.hasAim) {
+            this.aim.copyFrom(target);
+            this.hasAim = true;
+            return this.aim;
+        }
+
+        // Quaternions double-cover rotations: q and -q are the same orientation,
+        // so slerping toward the far copy would take the long way round — a full
+        // barrel roll to reach an aim a degree away.
+        const destination = Quaternion.Dot(this.aim, target) < 0 ? target.scale(-1) : target;
+
+        const angle = 2 * Math.acos(Math.min(1, Math.abs(Quaternion.Dot(this.aim, destination))));
+        if (!Number.isFinite(angle) || angle <= 1e-6) {
+            return this.aim;
+        }
+
+        const easedRate = (angle * (1 - Math.pow(0.5, deltaSeconds / TURN_HALF_LIFE))) / deltaSeconds;
+        const step = Math.min(easedRate, MAX_TURN_RATE) * deltaSeconds;
+
+        Quaternion.SlerpToRef(this.aim, destination, Math.min(1, step / angle), this.aimScratch);
+        this.aim.copyFrom(this.aimScratch);
+        this.aim.normalize();
+        return this.aim;
     }
 }
 
