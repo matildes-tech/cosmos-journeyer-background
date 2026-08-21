@@ -56,6 +56,7 @@ const endcard = document.getElementById("endcard") as HTMLElement;
  */
 const loaderNote = document.getElementById("loader-note") as HTMLElement | null;
 let sceneReady = false;
+let stage = "boot";
 
 function reportStall(reason: string): void {
     if (sceneReady || loaderNote === null) return;
@@ -67,7 +68,7 @@ function reportStall(reason: string): void {
         }
     })();
     const memory = (navigator as unknown as { deviceMemory?: number }).deviceMemory;
-    loaderNote.textContent = `${reason} · ${gl} · ${window.innerWidth}×${window.innerHeight}${
+    loaderNote.textContent = `${reason}\nstopped at: ${stage} · ${gl} · ${window.innerWidth}×${window.innerHeight}${
         memory === undefined ? "" : ` · ${String(memory)}GB`
     }`;
     loaderNote.style.opacity = "1";
@@ -124,7 +125,9 @@ progressMonitor.addProgressCallback((started, completed) => {
     void completed;
 });
 
-const { scene, starSystemView } = await createUniverseBackground(engine, progressMonitor, layout);
+const { scene, starSystemView } = await createUniverseBackground(engine, progressMonitor, layout, (s) => {
+    stage = s;
+});
 
 const controls = starSystemView.getDefaultControls();
 const camera = controls.getActiveCamera();

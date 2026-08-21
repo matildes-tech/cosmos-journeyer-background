@@ -23,24 +23,52 @@
 
         <!-- The end card. Rides in on the same curve as the white-out, so the
              page resolves into a footer rather than simply going blank. -->
+        <!-- The end card. Rides in on the back half of the white-out, so the
+             frame reaches white, holds, then crossfades to this. -->
         <footer id="endcard">
-            <img id="endcard-mark" src="./src/asset/background/starktronix-logo.png" alt="Starktronix" />
-            <p id="endcard-line">Placeholder closing line, one sentence.</p>
-            <nav id="endcard-nav">
-                <a href="#technology">Technology</a>
-                <a href="#capabilities">Capabilities</a>
-                <a href="#solutions">Solutions</a>
-                <a href="#network">Network</a>
-                <a href="#scale">Scale</a>
-                <a href="#hero">Back to top</a>
-            </nav>
-            <p id="endcard-legal">
-                &copy; Starktronix. Universe by
-                <a href="https://cosmosjourneyer.com" rel="noopener" target="_blank">Cosmos Journeyer</a>,
-                <a href="https://www.gnu.org/licenses/agpl-3.0.html" rel="noopener" target="_blank">AGPL-3.0</a> &mdash;
-                <a href="https://github.com/matildes-tech/cosmos-journeyer-background" rel="noopener" target="_blank">source</a>.
-                Ship by <a href="https://sketchfab.com/jimbogies" rel="noopener" target="_blank">jimbogies</a>, CC-BY-4.0.
-            </p>
+            <div class="endcard-inner">
+                <img id="endcard-mark" src="./src/asset/background/starktronix-logo.png" alt="Starktronix" />
+                <p id="endcard-line">Placeholder closing line — one sentence about what happens next.</p>
+
+                <div class="endcard-cols">
+                    <div class="endcard-col">
+                        <h4>Sections</h4>
+                        <a href="#technology">Technology</a>
+                        <a href="#capabilities">Capabilities</a>
+                        <a href="#solutions">Solutions</a>
+                        <a href="#network">Network</a>
+                        <a href="#scale">Scale</a>
+                    </div>
+                    <div class="endcard-col">
+                        <h4>Company</h4>
+                        <a href="#hero">About</a>
+                        <a href="#hero">Careers</a>
+                        <a href="#hero">Press</a>
+                        <a href="#hero">Partners</a>
+                    </div>
+                    <div class="endcard-col">
+                        <h4>Contact</h4>
+                        <a href="mailto:hello@starktronix.com">hello@starktronix.com</a>
+                        <a href="#hero">LinkedIn</a>
+                        <a href="#hero">Instagram</a>
+                    </div>
+                    <div class="endcard-col endcard-back">
+                        <a class="endcard-top" href="#hero">Back to top <span aria-hidden="true">&uarr;</span></a>
+                    </div>
+                </div>
+
+                <div class="endcard-rule"></div>
+
+                <div class="endcard-foot">
+                    <p>&copy; Starktronix. All rights reserved.</p>
+                    <p id="endcard-legal">
+                        Universe by <a href="https://cosmosjourneyer.com" rel="noopener" target="_blank">Cosmos Journeyer</a>,
+                        <a href="https://www.gnu.org/licenses/agpl-3.0.html" rel="noopener" target="_blank">AGPL-3.0</a> &mdash;
+                        <a href="https://github.com/matildes-tech/cosmos-journeyer-background" rel="noopener" target="_blank">source</a>.
+                        Ship by <a href="https://sketchfab.com/jimbogies" rel="noopener" target="_blank">jimbogies</a>, CC-BY-4.0.
+                    </p>
+                </div>
+            </div>
         </footer>
 
         <!-- CC-BY-4.0 requires the author be credited wherever the work is

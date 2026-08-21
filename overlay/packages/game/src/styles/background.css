@@ -729,86 +729,10 @@ a.hud-key:hover { color: #fff; }
 }
 
 
-/*  ---------------------------------------------------------------------------
-    End card.
-
-    The flight finishes inside the Sun and the frame goes white. Rather than
-    ending on a blank screen, the page resolves into a footer on that white:
-    dark type, the mark at full size, and the links a footer normally carries.
-    --------------------------------------------------------------------------- */
-#endcard {
-    position: fixed;
-    inset: 0;
-    z-index: 9;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 2.2rem;
-    padding: 3rem 2rem;
-    text-align: center;
-    /*  Its own dark ground. The white-out layer stays beneath at full opacity,
-        so as this fades up the screen crossfades white to black rather than
-        ending on a blank white page — the flight arrives somewhere instead of
-        simply stopping.  */
-    background: #06070b;
-    color: #eef1f8;
-    opacity: 0;
-    pointer-events: none;
-}
-
-#endcard-mark {
-    width: min(46rem, 78vw);
-    height: auto;
-}
-
-#endcard-line {
-    margin: 0;
-    max-width: 34ch;
-    font-size: clamp(1.05rem, 1.6vw, 1.35rem);
-    line-height: 1.45;
-    color: rgba(255, 255, 255, 0.74);
-}
-
-#endcard-nav {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 0.4rem 1.6rem;
-}
-
-#endcard-nav a {
-    font-size: 0.82rem;
-    letter-spacing: 0.02em;
-    color: rgba(255, 255, 255, 0.72);
-    text-decoration: none;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-    padding-bottom: 2px;
-}
-
-#endcard-nav a:hover { color: #fff; border-bottom-color: rgba(255, 255, 255, 0.6); }
-
-#endcard-legal {
-    margin: 0;
-    max-width: 46rem;
-    font-size: 0.68rem;
-    line-height: 1.6;
-    color: rgba(255, 255, 255, 0.42);
-}
-
-#endcard-legal a { color: rgba(255, 255, 255, 0.6); }
-
-@media (max-width: 860px) {
-    #endcard { gap: 1.6rem; padding: 2rem 1.4rem; }
-    #endcard-mark { width: 86vw; }
-    #endcard-nav { gap: 0.35rem 1.1rem; }
-    #endcard-nav a { font-size: 0.76rem; }
-}
-
-
 /*  Shown only when something has gone wrong, so a device we cannot attach a
     debugger to can still say what happened.  */
 #loader-note {
+    white-space: pre-line;
     margin: 1.4rem 0 0;
     max-width: 30rem;
     padding: 0 1.5rem;
@@ -819,4 +743,127 @@ a.hud-key:hover { color: #fff; }
     color: rgba(255, 190, 160, 0.85);
     opacity: 0;
     transition: opacity 0.4s ease;
+}
+
+
+/*  ---------------------------------------------------------------------------
+    End card.
+
+    The flight finishes inside the Sun, the frame goes white, and then crossfades
+    to this: a real footer on black rather than a blank screen. It carries its own
+    dark ground, so the white-out layer beneath it never has to be undone.
+    --------------------------------------------------------------------------- */
+#endcard {
+    position: fixed;
+    inset: 0;
+    z-index: 9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem 2rem;
+    background: #06070b;
+    color: #eef1f8;
+    opacity: 0;
+    pointer-events: none;
+    overflow-y: auto;
+}
+
+.endcard-inner {
+    width: min(68rem, 100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2.4rem;
+}
+
+#endcard-mark {
+    width: min(38rem, 72vw);
+    height: auto;
+}
+
+#endcard-line {
+    margin: 0;
+    max-width: 40ch;
+    text-align: center;
+    font-size: clamp(1.05rem, 1.5vw, 1.3rem);
+    line-height: 1.45;
+    color: rgba(255, 255, 255, 0.72);
+}
+
+.endcard-cols {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 2rem;
+    margin-top: 0.6rem;
+}
+
+.endcard-col {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+}
+
+.endcard-col h4 {
+    margin: 0 0 0.4rem;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 0.64rem;
+    font-weight: 500;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.34);
+}
+
+.endcard-col a {
+    font-size: 0.88rem;
+    color: rgba(255, 255, 255, 0.74);
+    text-decoration: none;
+    transition: color 0.2s ease;
+    width: fit-content;
+}
+
+.endcard-col a:hover { color: #fff; }
+
+.endcard-back { align-items: flex-end; justify-content: flex-start; }
+
+.endcard-top {
+    padding: 0.55rem 1.05rem;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    border-radius: 999px;
+    font-size: 0.8rem;
+}
+
+.endcard-top:hover { border-color: rgba(255, 255, 255, 0.4); }
+
+.endcard-rule {
+    width: 100%;
+    height: 1px;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.endcard-foot {
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 0.8rem 2rem;
+}
+
+.endcard-foot p {
+    margin: 0;
+    font-size: 0.68rem;
+    line-height: 1.6;
+    color: rgba(255, 255, 255, 0.4);
+}
+
+#endcard-legal { max-width: 44ch; text-align: right; }
+#endcard-legal a, .endcard-foot a { color: rgba(255, 255, 255, 0.58); }
+
+@media (max-width: 860px) {
+    #endcard { padding: 2.5rem 1.4rem; align-items: flex-start; }
+    .endcard-inner { gap: 1.8rem; }
+    #endcard-mark { width: 84vw; }
+    .endcard-cols { grid-template-columns: repeat(2, 1fr); gap: 1.6rem; }
+    .endcard-back { align-items: flex-start; }
+    #endcard-legal { text-align: left; }
 }
