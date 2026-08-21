@@ -277,6 +277,8 @@ body.ready #topbar {
     }
 }
 
+}
+
 /*  Floating navigation.
 
     Inset and rounded rather than a full-width strip: the scene behind is the
@@ -320,7 +322,7 @@ body.ready #topbar {
 }
 
 #topbar .mark img {
-    height: 1.35rem;
+    height: 1.7rem;
     width: auto;
     display: block;
 }
