@@ -56,74 +56,85 @@
         <!-- Headline top left, supporting paragraph bottom right, pill beneath
              it. The centre of the frame stays clear for the flight. Copy is
              placeholder; the arrangement is what matters. -->
+        <!-- Four section layouts, cycled: hero, statement, quiet, index.
+             All copy is placeholder, written to the lengths each role takes. -->
         <main>
-            <section class="panel" id="hero">
+            <section class="panel layout-hero" id="hero">
                 <div class="panel-inner">
                     <h1 class="headline">Engineering<br />the future</h1>
                     <div class="lede">
                         <p class="lede-mono">STARKTRONIX</p>
-                        <p class="lede-body">Placeholder copy. One or two sentences setting out what the company does, in the same weight and length the reference gives it.</p>
+                        <p class="lede-body">Placeholder copy. One or two sentences setting out what the company does, at the length the reference gives this role.</p>
                         <a class="lede-cta" href="#technology">Scroll to explore <span aria-hidden="true">&darr;</span></a>
                     </div>
                 </div>
             </section>
-            <section class="panel" id="technology">
+            <section class="panel layout-statement" id="technology">
                 <div class="panel-inner">
-                    <h2 class="headline">Built for<br />the long range</h2>
-                    <div class="lede">
-                        <p class="lede-mono">01 — TECHNOLOGY</p>
-                        <p class="lede-body">Placeholder copy. A short supporting paragraph, three lines at this width, explaining the point of this section.</p>
-                        <a class="lede-cta" href="#contact">Get in touch <span aria-hidden="true">&rarr;</span></a>
+                    <h2 class="headline">Ten operating<br />industries.</h2>
+                    <p class="subline">Placeholder copy. A second, quieter statement of two lines.</p>
+                    <div class="telemetry">
+                        <span>MERIDIAN: SENSOR FUSION ACTIVE</span>
+                        <span>POSITION: GNSS DEGRADED / FUSED</span>
+                        <span>OPERATING BASELINE: GPS-DENIED</span>
+                        <span>EDGE INFERENCE / NO CLOUD</span>
                     </div>
                 </div>
             </section>
-            <section class="panel" id="capabilities">
+            <section class="panel layout-quiet" id="capabilities">
                 <div class="panel-inner">
-                    <h2 class="headline">Autonomy<br />that holds</h2>
-                    <div class="lede">
-                        <p class="lede-mono">02 — CAPABILITIES</p>
-                        <p class="lede-body">Placeholder copy. A short supporting paragraph, three lines at this width, explaining the point of this section.</p>
-                        <a class="lede-cta" href="#contact">Get in touch <span aria-hidden="true">&rarr;</span></a>
+                    <div class="telemetry">
+                        <span>SIGNAL: STATE CHANGE DETECTED</span>
+                        <span>FUSED FROM MANY WEAK SIGNALS</span>
+                        <span>DECISIONS LOGGED / AUDITABLE: 100 %</span>
+                        <span>CAPABILITY: BOUNDED BY DESIGN</span>
                     </div>
                 </div>
             </section>
-            <section class="panel" id="solutions">
+            <section class="panel layout-statement" id="solutions">
                 <div class="panel-inner">
-                    <h2 class="headline">Systems<br />that scale</h2>
-                    <div class="lede">
-                        <p class="lede-mono">03 — SOLUTIONS</p>
-                        <p class="lede-body">Placeholder copy. A short supporting paragraph, three lines at this width, explaining the point of this section.</p>
-                        <a class="lede-cta" href="#contact">Get in touch <span aria-hidden="true">&rarr;</span></a>
+                    <h2 class="headline">Built for the<br />long range.</h2>
+                    <p class="subline">Placeholder copy. A second, quieter statement of two lines.</p>
+                    <div class="telemetry">
+                        <span>RANGE: EXTENDED / UNSUPPORTED</span>
+                        <span>LINK: INTERMITTENT BY DESIGN</span>
+                        <span>AUTONOMY: FULL / ON BOARD</span>
+                        <span>RECOVERY: SELF DIRECTED</span>
                     </div>
                 </div>
             </section>
-            <section class="panel" id="network">
+            <section class="panel layout-index" id="network">
                 <div class="panel-inner">
-                    <h2 class="headline">A network<br />without gaps</h2>
-                    <div class="lede">
-                        <p class="lede-mono">04 — NETWORK</p>
-                        <p class="lede-body">Placeholder copy. A short supporting paragraph, three lines at this width, explaining the point of this section.</p>
-                        <a class="lede-cta" href="#contact">Get in touch <span aria-hidden="true">&rarr;</span></a>
+                    <span class="hud-name">SATURN</span>
+                    <span class="hud-meta">GAS GIANT &middot; 58,232 KM</span>
+                    <span class="hud-note">RINGS LIT FROM BEHIND</span>
+                    <span class="hud-index">04 / 06</span>
+                    <div class="hud-keys">
+                        <span class="hud-key">[&middot;] FLIGHT</span>
+                        <span class="hud-key dim">[ ] SOL SYSTEM</span>
+                        <span class="hud-key dim">[ ] INBOUND</span>
                     </div>
                 </div>
             </section>
-            <section class="panel" id="scale">
+            <section class="panel layout-statement" id="scale">
                 <div class="panel-inner">
-                    <h2 class="headline">Scale<br />on demand</h2>
-                    <div class="lede">
-                        <p class="lede-mono">05 — SCALE</p>
-                        <p class="lede-body">Placeholder copy. A short supporting paragraph, three lines at this width, explaining the point of this section.</p>
-                        <a class="lede-cta" href="#contact">Get in touch <span aria-hidden="true">&rarr;</span></a>
+                    <h2 class="headline">Scale<br />on demand.</h2>
+                    <p class="subline">Placeholder copy. A second, quieter statement of two lines.</p>
+                    <div class="telemetry">
+                        <span>FLEET: ELASTIC</span>
+                        <span>DEPLOYMENT: HOURS NOT MONTHS</span>
+                        <span>COVERAGE: CONTINENTAL</span>
+                        <span>OVERHEAD: NONE ADDED</span>
                     </div>
                 </div>
             </section>
-            <section class="panel" id="contact">
+            <section class="panel layout-hero" id="contact">
                 <div class="panel-inner">
-                    <h2 class="headline">Let us<br />talk</h2>
+                    <h1 class="headline">Let us<br />talk.</h1>
                     <div class="lede">
                         <p class="lede-mono">06 — CONTACT</p>
-                        <p class="lede-body">Placeholder copy. A closing line inviting contact, at the same length the reference uses here.</p>
-                        <a class="lede-cta" href="#contact">Get in touch <span aria-hidden="true">&rarr;</span></a>
+                        <p class="lede-body">Placeholder copy. A closing line inviting contact, at the length the reference uses here.</p>
+                        <a class="lede-cta" href="#contact">Get in touch <span aria-hidden="true">&darr;</span></a>
                     </div>
                 </div>
             </section>
