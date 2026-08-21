@@ -43,11 +43,13 @@ export const SUN_ID = "sun";
  * Saturn is the most famous photograph of that planet ever taken.
  */
 export const STOPS: readonly [Stop, ...Array<Stop>] = [
-    { objectId: "mars", radius: 3_389.5e3, passRadii: 5, side: 1, leadFactor: 15, label: "Mars" },
-    { objectId: "earth", radius: 6_371e3, passRadii: 5, side: -1, leadFactor: 15, label: "Earth and Moon" },
-    { objectId: "neptune", radius: 24_622e3, passRadii: 4, side: 1, leadFactor: 14, label: "Neptune" },
-    { objectId: "saturn", radius: 58_232e3, passRadii: 6, side: -1, leadFactor: 14, label: "Saturn" },
-    { objectId: "jupiter", radius: 69_911e3, passRadii: 4, side: 1, leadFactor: 13, label: "Jupiter" },
+    { objectId: "mars", radius: 3_389.5e3, passRadii: 4, side: 1, leadFactor: 15, label: "Mars" },
+    { objectId: "earth", radius: 6_371e3, passRadii: 4, side: -1, leadFactor: 15, label: "Earth and Moon" },
+    { objectId: "neptune", radius: 24_622e3, passRadii: 3.6, side: 1, leadFactor: 14, label: "Neptune" },
+    // Saturn is given somewhat more room than its radius alone suggests: the
+    // rings extend well past the disc and are the widest thing on the route.
+    { objectId: "saturn", radius: 58_232e3, passRadii: 5, side: -1, leadFactor: 14, label: "Saturn" },
+    { objectId: "jupiter", radius: 69_911e3, passRadii: 3.6, side: 1, leadFactor: 13, label: "Jupiter" },
 ];
 
 /**
@@ -57,6 +59,50 @@ export const STOPS: readonly [Stop, ...Array<Stop>] = [
  * lets the Sun grow from a bright point to filling the frame.
  */
 const SUN_APPROACH_RADII = 900;
+
+/**
+ * Progress at which the last planet is passed; everything after is the Sun.
+ *
+ * The run to the Sun is more than a hundred times longer than the whole planet
+ * section. Giving it a proportionate share of the scroll is what turns it from a
+ * lurch into an approach — measured on the old layout, where the planets ran to
+ * five sixths of the scroll, travel per unit scroll stepped fifty-fold in a
+ * single interval exactly where the last planet still filled the frame, and the
+ * camera yawed there at over 500 deg/s.
+ *
+ * The exact value also keeps each planet inside its own panel: with seven
+ * panels the stops land at 0.15, 0.30, 0.45, 0.60 and 0.75, one per panel from
+ * the second to the sixth, so the copy still describes what is on screen beside
+ * it. Changing this without checking that alignment will silently caption Saturn
+ * over a shot of Jupiter.
+ */
+const PLANET_SPAN = 0.75;
+
+/**
+ * Intermediate anchors shaping the run to the Sun.
+ *
+ * Their distances fall geometrically rather than evenly, so the Sun's apparent
+ * size grows at a steady rate and the acceleration is spread across the whole
+ * leg instead of landing on one knot. Absolute speed still rises a great deal
+ * here, which is harmless: with nothing near the camera, there is almost nothing
+ * on screen whose motion could betray it.
+ */
+const SUN_LEG_ANCHORS = 7;
+
+/** How close the shaped part of the approach runs, in solar radii. Inside this the screen is white. */
+const SUN_LEG_FLOOR_RADII = 1.6;
+
+/**
+ * How sharply the run to the Sun eases out of the planet section.
+ *
+ * A plain geometric decay puts its quickest interval at the very start of the
+ * leg — which is precisely where the last planet is still receding, and it
+ * showed up as a ninety-fold jump in travel per unit scroll across one knot.
+ * Bending the parameter first means the leg leaves the planets at something near
+ * their own pace, builds to a cruise where there is nothing close enough for the
+ * speed to register, and settles again as the Sun fills the frame.
+ */
+const SUN_LEG_EASE = 7.3;
 
 /**
  * How far before closest approach a body is framed, in pass distances.
@@ -80,7 +126,7 @@ const DEPART_FACTOR = 7;
  * Wider than it needs to be, deliberately: the camera should ease onto a body
  * and ease off it over a long stretch of scroll rather than snapping to it.
  */
-const GLANCE_SPAN_PROGRESS = 0.26;
+const GLANCE_SPAN_PROGRESS = 0.24;
 
 /**
  * How far the ship swings to each side, in that body's pass distances.
@@ -98,8 +144,15 @@ const SWING_FACTOR = 2.2;
 /** Vertical share of the weave, a quarter-phase out, so the path rolls rather than staying flat. */
 const RISE_FACTOR = 0.8;
 
-/** Maximum bank, in radians. */
-const BANK_MAX = 0.26;
+/**
+ * Maximum bank, in radians.
+ *
+ * Nearly flat, and deliberately. Roll is the least forgiving axis for comfort
+ * because it fights the sense of which way is down, and space offers no horizon
+ * to re-establish it. What is left is enough to feel the turns without the frame
+ * appearing to tumble.
+ */
+const BANK_MAX = 0.06;
 
 /**
  * The widest the nose ever swings off the corridor axis, in radians.
@@ -149,6 +202,9 @@ export class CorridorLayout {
     /** The Sun's centre. The flight ends here. */
     readonly endF = 0;
 
+    /** Solved body positions, so an authored pass distance is the one achieved. */
+    private readonly stopPositions: Array<Vector3>;
+
     private readonly approachFactor: number;
     private readonly passDistances: ReadonlyArray<number>;
     private readonly pacing: MonotoneCurve;
@@ -185,12 +241,26 @@ export class CorridorLayout {
 
         this.startF = (this.featureF[0] ?? 0) - (STOPS[0]?.leadFactor ?? 15) * (this.passDistances[0] ?? 0);
 
-        const anchorX = [0];
-        const anchorY = [this.startF];
-        for (let i = 0; i < STOPS.length; i++) {
-            anchorX.push((i + 1) / (STOPS.length + 1));
-            anchorY.push(this.featureF[i] ?? 0);
+        const stopX = STOPS.map((_, i) => (PLANET_SPAN * (i + 1)) / STOPS.length);
+
+        const anchorX = [0, ...stopX];
+        const anchorY = [this.startF, ...STOPS.map((_, i) => this.featureF[i] ?? 0)];
+
+        // The Sun leg, shaped rather than left as one enormous interval. Each
+        // anchor sits a fixed fraction of the previous distance from the Sun, so
+        // the Sun grows by the same factor over each equal slice of scroll.
+        const sunStart = Math.abs(this.featureF[last] ?? 0);
+        const sunFloor = SUN_LEG_FLOOR_RADII * SUN_RADIUS;
+        if (sunStart > sunFloor) {
+            const easeSpan = Math.exp(SUN_LEG_EASE) - 1;
+            for (let k = 1; k < SUN_LEG_ANCHORS; k++) {
+                const u = k / SUN_LEG_ANCHORS;
+                const eased = (Math.exp(SUN_LEG_EASE * u) - 1) / easeSpan;
+                anchorX.push(PLANET_SPAN + (1 - PLANET_SPAN) * u);
+                anchorY.push(-sunStart * Math.pow(sunFloor / sunStart, eased));
+            }
         }
+
         anchorX.push(1);
         anchorY.push(this.endF);
         this.pacing = new MonotoneCurve(anchorX, anchorY);
@@ -205,7 +275,7 @@ export class CorridorLayout {
         // evenly by construction, and it is also the variable the viewer
         // actually moves through — so what is smooth in this parameter is what
         // looks smooth on screen.
-        const weaveX = anchorX.slice();
+        const weaveX = [0, ...stopX, 1];
         const weaveLateral = [0];
         const weaveRise = [0];
         for (let i = 0; i < STOPS.length; i++) {
@@ -238,6 +308,10 @@ export class CorridorLayout {
         }
         this.peakLateral = peakOffset;
         this.headingReference = peakSlope > 0 ? peakSlope / Math.tan(MAX_HEADING_SWING) : 1;
+
+        // Last, because solving a placement needs the finished corridor to
+        // measure against.
+        this.stopPositions = this.solveStopPositions();
     }
 
     passDistance(index: number): number {
@@ -335,7 +409,7 @@ export class CorridorLayout {
 
     /** Scroll position at which a stop is framed. Anchors are evenly spaced by construction. */
     stopProgress(index: number): number {
-        return (index + 1) / (STOPS.length + 1);
+        return (PLANET_SPAN * (index + 1)) / STOPS.length;
     }
 
     /**
@@ -348,12 +422,95 @@ export class CorridorLayout {
      * sweeps past — and that sweep is the fly-by.
      */
     stopPosition(index: number): Vector3 {
+        return (this.stopPositions[index] ?? Vector3.Zero()).clone();
+    }
+
+    /**
+     * Where a body lands for a given offset multiplier.
+     *
+     * Both components scale together, on purpose. Stretching only the sideways
+     * one moves the body further off the flight axis as well as further away,
+     * and past about twenty-five degrees off axis it leaves the frame entirely —
+     * the pass distance comes out right and the body is never seen. Scaling the
+     * whole offset changes how far away it is while holding the bearing, so the
+     * shot stays composed exactly as authored.
+     */
+    private placeStop(index: number, scale: number): Vector3 {
         const stop = STOPS[index];
         if (stop === undefined) return Vector3.Zero();
-        const pass = this.passDistance(index);
+        const pass = this.passDistance(index) * scale;
         return this.point(this.stopProgress(index))
             .add(this.forward.scale(this.approachFactor * pass))
             .add(this.lateral.scale(stop.side * pass));
+    }
+
+    /** Nearest the corridor ever comes to a point, searched around a guess. */
+    private closestApproach(target: Vector3, guess: number): number {
+        let best = Number.POSITIVE_INFINITY;
+        let at = guess;
+        for (let k = 0; k <= 48; k++) {
+            const p = Math.min(1, Math.max(0, guess - 0.05 + (0.14 * k) / 48));
+            const d = Vector3.Distance(this.point(p), target);
+            if (d < best) {
+                best = d;
+                at = p;
+            }
+        }
+        // Refine around the best sample; the corridor is smooth here, so a few
+        // bisections are plenty.
+        let span = 0.14 / 48;
+        for (let k = 0; k < 24; k++) {
+            span *= 0.6;
+            for (const p of [at - span, at + span]) {
+                const clamped = Math.min(1, Math.max(0, p));
+                const d = Vector3.Distance(this.point(clamped), target);
+                if (d < best) {
+                    best = d;
+                    at = clamped;
+                }
+            }
+        }
+        return best;
+    }
+
+    /**
+     * Solves each body's sideways offset so its authored pass distance is the
+     * distance the camera actually achieves.
+     *
+     * Offsetting from the path point at a body's own stop progress silently
+     * assumes the corridor is straight there. It is not: the weave's amplitude
+     * is a multiple of each pass distance, and those differ thirtyfold from Mars
+     * to Saturn, so the spline through them overshoots between knots. Measured on
+     * the assumed placement, Neptune's closest approach came out at 1.27 radii —
+     * 76 degrees of frame — against the 3.6 radii authored, while Jupiter sat
+     * half again too far out. Bodies were arriving at sizes nobody had chosen.
+     *
+     * Rather than hand-tune around the overshoot, each offset is corrected by how
+     * far the achieved approach missed the intended one. Two or three passes
+     * converge because moving a body sideways changes its closest approach almost
+     * proportionally.
+     */
+    private solveStopPositions(): Array<Vector3> {
+        return STOPS.map((_, i) => {
+            const target = this.passDistance(i);
+            let scale = 1;
+            let position = this.placeStop(i, scale);
+            if (target <= 0) return position;
+            for (let iteration = 0; iteration < 12; iteration++) {
+                const achieved = this.closestApproach(position, this.stopProgress(i));
+                if (!Number.isFinite(achieved) || achieved <= 0) break;
+                const correction = target / achieved;
+                if (Math.abs(correction - 1) < 0.01) break;
+                // Damped, and bounded overall. Moving a body also moves it along
+                // the corridor, into a stretch where the weave sits differently,
+                // so a full-size step overshoots and the iteration rings instead
+                // of settling — Saturn, whose offsets are the largest, ended up
+                // three times too far out that way.
+                scale = Math.min(4, Math.max(0.25, scale * Math.pow(correction, 0.55)));
+                position = this.placeStop(i, scale);
+            }
+            return position;
+        });
     }
 
     /**
