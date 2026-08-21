@@ -10,7 +10,19 @@ import { lerpSmooth } from "@/utils/math";
  * it to go. This is the whole feel of the thing: too short and the wheel still
  * reads as discrete notches, too long and the page swims behind the pointer.
  */
-const HALF_LIFE = 0.062;
+const COARSE =
+    typeof window !== "undefined" &&
+    typeof window.matchMedia === "function" &&
+    window.matchMedia("(pointer: coarse)").matches;
+
+/**
+ * Seconds to close half the gap to the scroll position.
+ *
+ * Much shorter on touch. A finger is already a direct manipulation — the page
+ * moves exactly as far as it is dragged — so easing on top of it does not read
+ * as softness, it reads as the scene lagging behind the hand.
+ */
+const HALF_LIFE = COARSE ? 0.022 : 0.062;
 
 /**
  * Wheel delta multiplier.
