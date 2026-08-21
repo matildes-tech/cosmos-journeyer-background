@@ -727,3 +727,75 @@ a.hud-key:hover { color: #fff; }
     .layout-index .hud-index { right: 1.4rem; }
     #credits { left: 1.4rem; right: 1.4rem; max-width: none; }
 }
+
+
+/*  ---------------------------------------------------------------------------
+    End card.
+
+    The flight finishes inside the Sun and the frame goes white. Rather than
+    ending on a blank screen, the page resolves into a footer on that white:
+    dark type, the mark at full size, and the links a footer normally carries.
+    --------------------------------------------------------------------------- */
+#endcard {
+    position: fixed;
+    inset: 0;
+    z-index: 9;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2.2rem;
+    padding: 3rem 2rem;
+    text-align: center;
+    color: #0a0c12;
+    opacity: 0;
+    pointer-events: none;
+}
+
+#endcard-mark {
+    width: min(46rem, 78vw);
+    height: auto;
+}
+
+#endcard-line {
+    margin: 0;
+    max-width: 34ch;
+    font-size: clamp(1.05rem, 1.6vw, 1.35rem);
+    line-height: 1.45;
+    color: rgba(10, 12, 18, 0.72);
+}
+
+#endcard-nav {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.4rem 1.6rem;
+}
+
+#endcard-nav a {
+    font-size: 0.82rem;
+    letter-spacing: 0.02em;
+    color: rgba(10, 12, 18, 0.7);
+    text-decoration: none;
+    border-bottom: 1px solid rgba(10, 12, 18, 0.18);
+    padding-bottom: 2px;
+}
+
+#endcard-nav a:hover { color: #0a0c12; border-bottom-color: rgba(10, 12, 18, 0.6); }
+
+#endcard-legal {
+    margin: 0;
+    max-width: 46rem;
+    font-size: 0.68rem;
+    line-height: 1.6;
+    color: rgba(10, 12, 18, 0.45);
+}
+
+#endcard-legal a { color: rgba(10, 12, 18, 0.62); }
+
+@media (max-width: 860px) {
+    #endcard { gap: 1.6rem; padding: 2rem 1.4rem; }
+    #endcard-mark { width: 86vw; }
+    #endcard-nav { gap: 0.35rem 1.1rem; }
+    #endcard-nav a { font-size: 0.76rem; }
+}

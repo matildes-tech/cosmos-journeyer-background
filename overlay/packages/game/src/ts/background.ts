@@ -43,6 +43,7 @@ const canvas = document.getElementById("universe") as HTMLCanvasElement;
 const loader = document.getElementById("loader") as HTMLDivElement;
 const loaderBar = document.getElementById("loader-bar") as HTMLDivElement;
 const whiteout = document.getElementById("whiteout") as HTMLDivElement;
+const endcard = document.getElementById("endcard") as HTMLElement;
 
 const profile = detectProfile();
 
@@ -333,7 +334,14 @@ scene.onBeforeRenderObservable.add(
         // Driven from the camera's real distance to the Sun rather than from a
         // scroll number, so the screen is white exactly when the Sun has
         // actually swallowed the frame.
-        whiteout.style.opacity = String(flight.whiteout(p));
+        const white = flight.whiteout(p);
+        whiteout.style.opacity = String(white);
+        // The card arrives only once the frame is genuinely white, and comes in
+        // over the back half of that curve — otherwise it reads as text laid on
+        // top of the Sun rather than as the page resolving into a footer.
+        const card = Math.max(0, (white - 0.55) / 0.45);
+        endcard.style.opacity = String(card);
+        endcard.style.pointerEvents = card > 0.85 ? "auto" : "none";
     },
     undefined,
     true,

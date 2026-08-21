@@ -46,6 +46,15 @@ objects, copies `overlay/` over the top, and installs. Then:
 
     pnpm --filter game dev      # http://localhost:8080/background.html
     pnpm --filter game build    # dist/
+    node packages/game/prune-dist.mjs           # drop unused audio
+    python3 packages/game/shrink-dist.py packages/game/dist 512   # downscale textures
+
+The last step is not optional for a deployed build. Upstream ships 4K terrain
+materials because you can land on its planets and walk around; this page never
+gets nearer than a few planetary radii, where a 4096px albedo and a 512px one
+are the same handful of pixels. Measured, the page transferred **148 MB** before
+that step and **41 MB** after, which is the difference between loading on a phone
+and not.
 
 Edit inside the checkout, where it runs; `./sync.sh [checkout]` copies the overlay
 back here. Both default to a `checkout/` sibling of this repository.
