@@ -21,7 +21,12 @@ import { type PointerInfluence } from "./pointerInfluence";
  * so most of the smoothing already happened upstream. Damping hard a second
  * time here would only add lag between the copy and the world it sits in.
  */
-const HALF_LIFE = 0.085;
+const COARSE =
+    typeof window !== "undefined" &&
+    typeof window.matchMedia === "function" &&
+    window.matchMedia("(pointer: coarse)").matches;
+
+const HALF_LIFE = COARSE ? 0.035 : 0.085;
 
 /**
  * Ceiling on how fast the camera may turn, in radians per second.

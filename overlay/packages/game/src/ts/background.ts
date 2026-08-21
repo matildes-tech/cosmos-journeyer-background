@@ -144,6 +144,13 @@ sizeCanvasLikeTheGame();
 // before there is a scene to render. This is what their playground does too.
 engine.runRenderLoop(() => {});
 
+// Babylon sets `touch-action: none` on the body when it takes the canvas, which
+// is right for a game that captures input and wrong for a page that is scrolled.
+// On a phone it disables the browser's own vertical pan, so the flight stops
+// responding to the finger. The canvas ignores pointer events here, so handing
+// vertical panning back costs nothing.
+document.body.style.touchAction = "pan-y";
+
 const progressMonitor = new LoadingProgressMonitor();
 progressMonitor.addProgressCallback((started, completed) => {
     const fraction = started === 0 ? 0 : completed / started;
@@ -266,7 +273,7 @@ const NEBULAE = [
         ahead: 0.34,
         side: 0.15,
         rise: -0.08,
-        radiusFactor: 0.2,
+        radiusFactor: 0.13,
         colorA: new Color3(0.40, 0.20, 0.15),
         colorB: new Color3(0.93, 0.80, 0.63),
         density: 1.15,
