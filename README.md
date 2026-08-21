@@ -13,6 +13,13 @@ The scroll position is never used to render. It feeds a target; a spring on its 
 animation frame chases that target; the camera reads the spring. That indirection is
 the whole reason the flight feels like flying rather than like scrubbing a timeline.
 
+> **This repository is the Corresponding Source for the page served at
+> `deploy-stage-swart.vercel.app`.** Cosmos Journeyer is AGPL-3.0-only, and its
+> section 13 requires that anyone the page is served to over a network can obtain
+> the source of the version running. That is why this repository is public and
+> why the page footer links to it. If the deployed build changes, run `./sync.sh`
+> and push, or the offer no longer matches what is being served.
+
 ## Licence
 
 Cosmos Journeyer is **AGPL-3.0-only**, so this derived work is too, and the full
