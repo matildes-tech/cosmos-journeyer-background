@@ -287,14 +287,37 @@ starSystemForSky.starFieldBox.mesh.setEnabled(false);
  * layer's default full-frame stretch is precisely right, because the texture is
  * already the right shape.
  */
-const backdropTexture = new DynamicTexture(
-    "backdrop",
-    { width: Math.min(2048, engine.getRenderWidth()), height: Math.min(2048, engine.getRenderHeight()) },
-    scene,
-    false,
-);
+/**
+ * Texture size, at the viewport's aspect ratio.
+ *
+ * Clamping width and height independently is a trap: a 2880x1640 frame becomes a
+ * 2048x1640 texture, which the layer then stretches back across the full width
+ * and the whole backdrop is quietly squashed. Both axes are scaled by the same
+ * factor so the shape is preserved and only the resolution is capped.
+ */
+const BACKDROP_MAX_EDGE = 2048;
+const backdropSize = (): { width: number; height: number } => {
+    const w = Math.max(1, engine.getRenderWidth());
+    const h = Math.max(1, engine.getRenderHeight());
+    const scale = Math.min(1, BACKDROP_MAX_EDGE / Math.max(w, h));
+    return { width: Math.round(w * scale), height: Math.round(h * scale) };
+};
+
+const backdropTexture = new DynamicTexture("backdrop", backdropSize(), scene, false);
 backdropTexture.hasAlpha = false;
 
+/**
+ * How the image is fitted.
+ *
+ * Landscape frames contain it, so the whole nebula is visible. Portrait ones
+ * cover instead: containing a 1.79 image inside a frame half as wide as it is
+ * tall leaves the subject tiny and marooned in the middle. Filling the width and
+ * cropping the sides puts the nebula close and large.
+ *
+ * This costs no sharpness. The source is 2752 across; a phone showing the middle
+ * of it is asking roughly 850 source pixels to cover a 645-pixel-wide render, so
+ * the texture is still being downsampled, not enlarged.
+ */
 const backdropImage = new Image();
 const paintBackdrop = (): void => {
     if (!backdropImage.complete || backdropImage.naturalWidth === 0) return;
@@ -302,9 +325,12 @@ const paintBackdrop = (): void => {
     const context = backdropTexture.getContext() as unknown as CanvasRenderingContext2D;
     context.fillStyle = "#000";
     context.fillRect(0, 0, size.width, size.height);
-    // Contain: the whole nebula visible at any aspect, and because it sits on
-    // black the space around it is simply more space.
-    const fit = Math.min(size.width / backdropImage.naturalWidth, size.height / backdropImage.naturalHeight);
+
+    const byWidth = size.width / backdropImage.naturalWidth;
+    const byHeight = size.height / backdropImage.naturalHeight;
+    const portrait = size.height > size.width;
+    const fit = portrait ? Math.max(byWidth, byHeight) : Math.min(byWidth, byHeight);
+
     const w = backdropImage.naturalWidth * fit;
     const h = backdropImage.naturalHeight * fit;
     context.drawImage(backdropImage, (size.width - w) / 2, (size.height - h) / 2, w, h);
@@ -312,6 +338,17 @@ const paintBackdrop = (): void => {
 };
 backdropImage.onload = paintBackdrop;
 backdropImage.src = nebulaImage;
+
+/** Rotating a phone changes the frame's shape, so the texture has to follow. */
+const resizeBackdrop = (): void => {
+    const next = backdropSize();
+    const current = backdropTexture.getSize();
+    if (next.width === current.width && next.height === current.height) return;
+    backdropTexture.scaleTo(next.width, next.height);
+    paintBackdrop();
+};
+window.addEventListener("resize", resizeBackdrop);
+window.addEventListener("orientationchange", resizeBackdrop);
 
 const backdrop = new Layer("backdrop", null, scene, true);
 backdrop.texture = backdropTexture;
