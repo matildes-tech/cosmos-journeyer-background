@@ -8,6 +8,10 @@
     <body>
         <!-- The live scene. Never receives pointer events, so the page scrolls
              and its text selects exactly as a normal document would. -->
+        <!-- Shown only when the scene cannot start, so the page is still a page. -->
+        <div id="skyfallback"></div>
+        <p id="fallback-note"></p>
+
         <canvas id="universe"></canvas>
 
         <div id="loader">

@@ -110,17 +110,49 @@ function reportStall(reason: string): void {
     loaderNote.style.opacity = "1";
 }
 
+/**
+ * Gives up on the scene and hands back a working page.
+ *
+ * Reporting why it stalled was not enough: the loader stayed over the page for
+ * ever, so a device that could not start the scene could not read the site
+ * either — no copy, no navigation, and nothing to scroll. Whatever the reason,
+ * the page underneath is an ordinary document with a photograph behind it, and
+ * that is worth far more than a diagnostic on a black screen.
+ *
+ * Reversible: if the scene does arrive later, it takes over.
+ */
+let fellBack = false;
+function enterFallback(reason: string): void {
+    if (sceneReady || fellBack) return;
+    fellBack = true;
+    reportStall(reason);
+    const note = document.getElementById("fallback-note");
+    if (note !== null && loaderNote !== null) note.textContent = loaderNote.textContent;
+    document.body.classList.add("no-scene", "ready");
+}
+
 window.addEventListener("error", (event) => {
-    reportStall(`Error: ${String(event.message).slice(0, 120)}`);
+    enterFallback(`Error: ${String(event.message).slice(0, 120)}`);
 });
 window.addEventListener("unhandledrejection", (event) => {
-    reportStall(`Failed: ${String((event as PromiseRejectionEvent).reason).slice(0, 120)}`);
+    enterFallback(`Failed: ${String((event as PromiseRejectionEvent).reason).slice(0, 120)}`);
 });
+
+// No WebGL2, no flight — and no reason to make anyone wait thirty seconds to be
+// told so.
+try {
+    if (document.createElement("canvas").getContext("webgl2") === null) {
+        enterFallback("This browser has no WebGL2");
+    }
+} catch {
+    enterFallback("WebGL is blocked in this browser");
+}
+
 // If nothing has thrown and it still has not started, it is almost certainly
 // weight or memory rather than a bug in the page.
 window.setTimeout(() => {
-    reportStall("Still loading — the scene has not started");
-}, 30000);
+    enterFallback("Still loading — the scene has not started");
+}, 22000);
 
 const profile = detectProfile();
 
@@ -1045,6 +1077,9 @@ window.addEventListener("resize", () => {
 });
 
 sceneReady = true;
+// If the page had already given up and shown the static version, the scene
+// arriving late takes over.
+document.body.classList.remove("no-scene");
 loader.classList.add("done");
 document.body.classList.add("ready");
 introStart = performance.now();
