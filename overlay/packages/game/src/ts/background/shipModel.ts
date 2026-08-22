@@ -139,10 +139,10 @@ const CLEAR_COAT_ROUGHNESS = 0.011;
  */
 // The shine comes from here instead: a hard, bright specular response to the
 // ship's own lights, which is a highlight rather than a reflection.
-const SPECULAR_INTENSITY = 1.5;
+const SPECULAR_INTENSITY = 3.2;
 
 /** A second light from behind and to the side, purely to catch the edges. */
-const RIM_INTENSITY = 0.32;
+const RIM_INTENSITY = 0.75;
 
 /** Extra roll from the sideways slide, so a move across the frame is flown into rather than slid. */
 const SLIDE_BANK = 0.5;
@@ -309,7 +309,7 @@ const starReflection = (scene: Scene): DynamicTexture => {
     return texture;
 };
 
-const KEY_INTENSITY = 0.45;
+const KEY_INTENSITY = 1.0;
 // Broad and soft, and doing most of the work now.
 //
 // A hull this far from the star has almost nothing lighting it: the sky is black
@@ -346,8 +346,9 @@ const FILL_INTENSITY = 0.08;
 // it darker, which is the opposite of silver. The silver comes from a bright,
 // slightly cool base under a polished coat; the metalness is only there for the
 // sheen, and the star map supplies the glints.
-const METALLIC = 1.0;
-const ROUGHNESS = 0.014;
+/** Glass is a dielectric: no metalness at all. */
+const METALLIC = 0.0;
+const ROUGHNESS = 0.02;
 
 /**
  * How much brighter the hull's reflections are than the sky that supplies them.
@@ -364,7 +365,13 @@ const ROUGHNESS = 0.014;
 // Above one on purpose. A mirror shows the brightness of what is around it, and
 // what is around this is mostly empty sky — so the sources have to be brighter
 // than life for the hull to read as chrome rather than as grey.
-const ENVIRONMENT_INTENSITY = 3.4;
+const ENVIRONMENT_INTENSITY = 3.3;
+
+/** Crown glass is about 1.52; a touch above reads as a harder, brighter stone. */
+const INDEX_OF_REFRACTION = 1.62;
+const REFRACTION_INTENSITY = 0.92;
+/** Left well short of clear, or the hull stops reading as a solid object. */
+const GLASS_ALPHA = 0.66;
 
 /** Gentle idle motion so it never looks welded to the lens. */
 const DRIFT_PITCH = 0.014;
@@ -481,15 +488,47 @@ export class ShipModel {
                 clearCoat?: { isEnabled: boolean; intensity: number; roughness: number };
                 specularIntensity?: number;
                 maxSimultaneousLights?: number;
+                alpha?: number;
+                transparencyMode?: number | null;
+                backFaceCulling?: boolean;
+                indexOfRefraction?: number;
+                subSurface?: {
+                    isRefractionEnabled: boolean;
+                    refractionIntensity: number;
+                    indexOfRefraction: number;
+                    refractionTexture: unknown;
+                };
             } | null;
             if (material !== null && "metallic" in material) {
                 // The base colour has to be set, not inherited. The model ships
                 // a dark one and relies on a mirror finish to look bright; with
                 // the reflections turned down so the universe stays out of the
                 // paintwork, an unset albedo simply leaves a black silhouette.
-                material.albedoColor?.set(0.92, 0.94, 0.98);
+                // Glass, not metal.
+                //
+                // The reference is a cut-crystal render: you can see through the
+                // wing to its own far side, the nacelles read as faceted stones,
+                // and the bright lines are refractions rather than reflections
+                // of a studio. Every attempt at chrome missed it for the same
+                // reason — a metal is opaque, and the thing that makes this look
+                // like glass is what happens behind the surface, not on it.
+                material.albedoColor?.set(0.93, 0.95, 1);
                 material.metallic = METALLIC;
                 material.roughness = ROUGHNESS;
+                material.indexOfRefraction = INDEX_OF_REFRACTION;
+                // Both faces drawn, so the far side of the hull shows through the
+                // near one. That layering is most of the crystal look.
+                material.backFaceCulling = false;
+                material.alpha = GLASS_ALPHA;
+                // ALPHABLEND — declared by number so this stays free of the
+                // material class, which the loader picks, not us.
+                material.transparencyMode = 2;
+                if (material.subSurface !== undefined) {
+                    material.subSurface.isRefractionEnabled = true;
+                    material.subSurface.refractionIntensity = REFRACTION_INTENSITY;
+                    material.subSurface.indexOfRefraction = INDEX_OF_REFRACTION;
+                    material.subSurface.refractionTexture = starReflection(scene);
+                }
                 material.environmentIntensity = ENVIRONMENT_INTENSITY;
                 // Stars only, never the void.
                 //
