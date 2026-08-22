@@ -296,7 +296,7 @@ body.ready #topbar {
     align-items: center;
     justify-content: space-between;
     gap: 1rem;
-    padding: 0.5rem 0.5rem 0.5rem 1.15rem;
+    padding: 0.6rem 0.6rem 0.6rem 1.5rem;
     border-radius: 999px;
     border: 1px solid rgba(255, 255, 255, 0.09);
     /* Opaque enough to stand on its own. The frosting below is an
@@ -322,7 +322,7 @@ body.ready #topbar {
 }
 
 #topbar .mark img {
-    height: 1.7rem;
+    height: 2.45rem;
     width: auto;
     display: block;
 }
@@ -331,15 +331,15 @@ body.ready #topbar {
     display: flex;
     align-items: center;
     gap: 0.1rem;
-    padding: 0.2rem;
+    padding: 0.28rem;
     border-radius: 999px;
     background: rgba(255, 255, 255, 0.045);
 }
 
 #topbar nav a {
-    padding: 0.42rem 0.9rem;
+    padding: 0.6rem 1.15rem;
     border-radius: 999px;
-    font-size: 0.78rem;
+    font-size: 0.95rem;
     letter-spacing: 0.01em;
     color: #c3cad9;
     text-decoration: none;
@@ -1039,7 +1039,7 @@ body {
     it rather than sliding under it.  */
 #endcard {
     align-items: flex-start;
-    padding: 5.75rem 2rem 3rem;
+    padding: 7rem 2rem 2.2rem;
 }
 
 .endcard-inner {
@@ -1053,14 +1053,11 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: clamp(2.6rem, 5.5vw, 4.4rem) 2rem;
-    border-radius: 1.6rem;
-    background: #1b3cf2;
-    background-image: radial-gradient(120% 140% at 50% 0%, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0) 60%);
+    padding: clamp(1rem, 2.5vw, 2rem) 0;
 }
 
 .endcard-panel-mark {
-    width: min(34rem, 66%);
+    width: min(42rem, 76%);
     height: auto;
     display: block;
 }
@@ -1136,8 +1133,8 @@ body {
 @media (max-width: 860px) {
     .endcard-inner { gap: 2rem; }
     #endcard { padding: 5rem 1.4rem 2.5rem; }
-    .endcard-panel { padding: clamp(2rem, 11vw, 3.2rem) 1.2rem; border-radius: 1.2rem; }
-    .endcard-panel-mark { width: 78%; }
+    .endcard-panel { padding: clamp(1.2rem, 6vw, 2.4rem) 0; }
+    .endcard-panel-mark { width: 86%; }
     .endcard-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.8rem; }
     .endcard-news { grid-column: 1 / -1; }
     .endcard-form { max-width: none; }
