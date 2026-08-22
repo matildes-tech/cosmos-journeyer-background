@@ -235,7 +235,21 @@ export class CameraDriver {
         }
 
         const easedRate = (angle * (1 - Math.pow(0.5, deltaSeconds / TURN_HALF_LIFE))) / deltaSeconds;
-        const step = Math.min(easedRate, MAX_TURN_RATE) * deltaSeconds;
+
+        // Saturated, not clipped. `Math.min` against the ceiling puts a corner in
+        // the rate: below it the camera turns as asked, at it the rate goes flat,
+        // and the moment the demand drops the corner appears again on the way out.
+        // Measured on a steady scroll, fourteen per cent of frames sat exactly on
+        // that corner, and the frame-to-frame change in rate reached fourteen
+        // degrees per second — a jolt in angular acceleration, which is precisely
+        // what reads as a camera being driven rather than flown.
+        //
+        // tanh is the same curve for small demands (tanh x approximates x), bends
+        // over smoothly as the demand approaches the ceiling, and never exceeds
+        // it. There is no corner anywhere, so angular acceleration stays
+        // continuous however hard the reader scrolls.
+        const rate = MAX_TURN_RATE * Math.tanh(easedRate / MAX_TURN_RATE);
+        const step = rate * deltaSeconds;
 
         Quaternion.SlerpToRef(this.aim, destination, Math.min(1, step / angle), this.aimScratch);
         this.aim.copyFrom(this.aimScratch);

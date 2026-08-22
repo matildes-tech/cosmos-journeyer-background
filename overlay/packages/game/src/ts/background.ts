@@ -190,8 +190,12 @@ applyRenderScale();
  * that cannot keeps its frame rate.
  */
 const QUALITY_SAMPLE_SECONDS = 2.5;
-const QUALITY_FLOOR_FPS = 45;
+/** Above this the device is holding 60 and needs nothing done to it. */
+const FULL_RATE_FPS = 55;
+/** Below this it cannot hold even a steady half rate, and has to give up pixels. */
+const HALF_RATE_FPS = 27;
 const QUALITY_LADDER = [1.5, 1.25];
+let halfRate = false;
 let qualitySettled = false;
 let qualitySampleStart = 0;
 let qualitySampleFrames = 0;
@@ -209,14 +213,28 @@ const watchRenderQuality = (): void => {
     const rate = qualitySampleFrames / elapsed;
     qualitySampleStart = 0;
     qualitySampleFrames = 0;
-    if (rate >= QUALITY_FLOOR_FPS || SCALE_OVERRIDE > 0) {
+    if (SCALE_OVERRIDE > 0) {
         qualitySettled = true;
         return;
     }
-    // A ladder, not a single step. Stopping at 1.5 leaves a high-density display
-    // still drawing half again as many pixels as it can carry, and the reason to
-    // give up resolution is smoothness — so keep giving it up until the frame
-    // rate is actually there, then stop.
+
+    // Cadence before resolution. A device that holds the full rate keeps
+    // everything; one that cannot is given a steady half rate rather than a
+    // resolution cut, because the irregularity is what is being seen, not the
+    // sharpness. Only if it cannot hold even that does it start paying in
+    // pixels.
+    if (!halfRate) {
+        if (rate >= FULL_RATE_FPS) {
+            qualitySettled = true;
+            return;
+        }
+        halfRate = true;
+        return;
+    }
+    if (rate >= HALF_RATE_FPS) {
+        qualitySettled = true;
+        return;
+    }
     const next = QUALITY_LADDER.find((step) => step < renderScaleCap);
     if (next === undefined) {
         qualitySettled = true;
@@ -904,7 +922,9 @@ const wantsPass = (index: number, progress: number): boolean => {
 };
 
 let attachedSignature = "";
+const CULL_DISABLED = new URLSearchParams(window.location.search).has("nocull");
 const syncBodyPasses = (progress: number): void => {
+    if (CULL_DISABLED) return;
     captureChain();
     if (bodyPasses.size === 0) return;
 
@@ -998,7 +1018,24 @@ scene.onBeforeRenderObservable.add(
 );
 
 engine.stopRenderLoop();
+/*  Frame pacing.
+ *
+ *  Measured on a steady scroll: median frame 17ms, 95th percentile 39ms. The
+ *  scene sits right on the 60Hz budget, so frames alternate between one and two
+ *  vsync intervals — and a rate swinging between 60 and 30 looks markedly worse
+ *  than a rate that simply stays at 30, because the eye reads the irregularity
+ *  rather than the average. A page with no scene in the same browser holds
+ *  16.7ms with a standard deviation of 0.6, so this is the scene, not the
+ *  measuring harness.
+ *
+ *  When the device cannot hold the full rate, render every second frame and give
+ *  it a steady cadence instead of an erratic one. */
+let frameParity = 0;
 engine.runRenderLoop(() => {
+    if (halfRate) {
+        frameParity ^= 1;
+        if (frameParity === 1) return;
+    }
     starSystemView.render();
 });
 
@@ -1035,6 +1072,8 @@ declare global {
             bgTest: (mode: string) => string;
             perfTest: (mode: string) => string;
             recordShip: (ms: number) => Promise<string>;
+    recordCamera: (ms: number) => Promise<string>;
+            pacing: () => string;
         };
     }
 }
@@ -1098,6 +1137,40 @@ window.__bg = {
     // outside over the debugging protocol gives uneven intervals, which makes
     // smooth motion look jerky and jerky motion look smooth — the numbers have
     // to come from the same clock the animation runs on.
+            /*  Sampled from inside the render loop, one row per rendered frame. Sampling
+        the camera from outside over the debugging protocol gives uneven
+        intervals, which makes smooth motion look jerky and jerky motion look
+        smooth — the numbers have to come from the clock the animation runs on. */
+            pacing: () =>
+        `halfRate=${halfRate} scale=${renderScaleCap} settled=${qualitySettled} dpr=${window.devicePixelRatio}`,
+    recordCamera: (ms: number) =>
+        new Promise<string>((resolve) => {
+            const rows: Array<string> = [];
+            const start = performance.now();
+            const tick = (): void => {
+                const now = performance.now() - start;
+                const transform = controls.getTransform();
+                const position = transform.getAbsolutePosition();
+                const forward = transform.forward;
+                rows.push(
+                    [
+                        now.toFixed(2),
+                        driver.getProgress().toFixed(8),
+                        position.x.toFixed(3),
+                        position.y.toFixed(3),
+                        position.z.toFixed(3),
+                        forward.x.toFixed(6),
+                        forward.y.toFixed(6),
+                        forward.z.toFixed(6),
+                    ].join(","),
+                );
+                if (performance.now() - start >= ms) {
+                    scene.onAfterRenderObservable.removeCallback(tick);
+                    resolve(rows.join(";"));
+                }
+            };
+            scene.onAfterRenderObservable.add(tick);
+        }),
     recordShip: (ms: number) =>
         new Promise<string>((resolve) => {
             const values: Array<number> = [];
