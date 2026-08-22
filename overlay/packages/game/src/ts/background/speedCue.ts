@@ -20,7 +20,7 @@ import { lerpSmooth } from "@/utils/math";
 const CRUISE_THROTTLE = 0.07;
 
 /** Scroll rate, in progress per second, that corresponds to peak throttle. */
-const FULL_THROTTLE_RATE = 0.22;
+const FULL_THROTTLE_RATE = 0.15;
 
 /**
  * Ceiling on the dust.
@@ -29,10 +29,13 @@ const FULL_THROTTLE_RATE = 0.22;
  * reads as a hyperspace tunnel rather than as travel. Capping it well below the
  * top keeps the streaks as a hint of speed instead of the subject.
  */
-const PEAK_THROTTLE = 0.26;
+const PEAK_THROTTLE = 0.54;
 
 /** Seconds for the throttle to close half the gap to its target. */
-const THROTTLE_HALF_LIFE = 0.55;
+// Short enough that the surge belongs to the scroll that caused it. Over half a
+// second the dust was still speeding up well after the reader had stopped, which
+// reads as drift rather than as acceleration.
+const THROTTLE_HALF_LIFE = 0.26;
 
 /** Turn rate, in radians per second, that corresponds to full steering bend. */
 const FULL_STEER_RATE = 0.35;
@@ -79,6 +82,10 @@ export class SpeedCue {
      * dust belongs in front of a backdrop in any case.
      */
     setRenderingGroup(id: number): void {
+        // The group gets no depth clear of its own, so the dust still tests
+        // against what the scene already drew. Without that it is composited over
+        // everything — including the ship — and streaks run across the hull.
+        this.dots.getTransform().getScene().setRenderingAutoClearDepthStencil(id, false, false, false);
         const transform = this.dots.getTransform();
         const meshes = transform.getChildMeshes(false);
         for (const mesh of meshes) mesh.renderingGroupId = id;
