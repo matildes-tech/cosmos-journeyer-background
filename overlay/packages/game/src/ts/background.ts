@@ -139,6 +139,12 @@ const engine = new Engine(canvas, true, {
 });
 engine.useReverseDepthBuffer = true;
 
+/** Touch, in practice: no hover, coarse pointer, and a battery to answer to. */
+const COARSE_POINTER =
+    typeof window !== "undefined" &&
+    typeof window.matchMedia === "function" &&
+    window.matchMedia("(pointer: coarse)").matches;
+
 /**
  * Ceiling on render scale.
  *
@@ -151,25 +157,58 @@ engine.useReverseDepthBuffer = true;
  * Two is the sweet spot rather than three: the step from 1x to 2x removes
  * essentially all of the visible aliasing, while 3x costs more than twice again
  * for a difference nobody can see at arm's length.
+ *
+ * Phones were pinned below that, at 1.5x, on the strength of one phone measuring
+ * about 38fps at 2x. That is one device standing in for all of them, and it is
+ * standing in from the slow end. Every device now starts at 2x and the number is
+ * settled by measurement instead — see `watchRenderQuality`.
  */
-const RENDER_SCALE_CAP = (() => {
-    const coarse =
-        typeof window !== "undefined" &&
-        typeof window.matchMedia === "function" &&
-        window.matchMedia("(pointer: coarse)").matches;
-    // Measured on a phone: 1x is 60fps but visibly soft, 1.5x is still 60fps,
-    // 2x drops to about 38. Almost all the visible aliasing goes between 1x and
-    // 1.5x, so the last half-step is the one worth giving up — it costs a third
-    // of the frame rate for a difference you have to look for.
-    return coarse ? 1.5 : 2;
-})();
+let renderScaleCap = 2;
 
-const sizeCanvasLikeTheGame = (): void => {
-    const ratio = Math.min(window.devicePixelRatio || 1, RENDER_SCALE_CAP);
-    canvas.width = Math.round(window.innerWidth * ratio);
-    canvas.height = Math.round(window.innerHeight * ratio);
+const applyRenderScale = (): void => {
+    const ratio = Math.min(window.devicePixelRatio || 1, renderScaleCap);
+    // Babylon's own scaling rather than writing canvas.width directly. resize()
+    // recomputes the backing store from the CSS box and the hardware scaling
+    // level, so a manually sized canvas is silently reset the first time the
+    // engine resizes — which on a phone is every time the address bar slides
+    // away. Written this way the scale survives.
+    engine.setHardwareScalingLevel(1 / ratio);
+    engine.resize(true);
 };
-sizeCanvasLikeTheGame();
+applyRenderScale();
+
+/**
+ * The render scale, settled on the device rather than guessed at.
+ *
+ * Sampling starts only once the loader has handed over, because the frames spent
+ * building the scene are not the frames the reader will see. If the device holds
+ * a smooth rate across the sample it keeps 2x; if it does not, it drops to 1.5x
+ * once and stays there. A phone that can afford the resolution keeps it, and one
+ * that cannot keeps its frame rate.
+ */
+const QUALITY_SAMPLE_SECONDS = 2.5;
+const QUALITY_FLOOR_FPS = 45;
+let qualitySettled = false;
+let qualitySampleStart = 0;
+let qualitySampleFrames = 0;
+const watchRenderQuality = (): void => {
+    if (qualitySettled || introStart === 0) return;
+    const now = performance.now();
+    if (qualitySampleStart === 0) {
+        qualitySampleStart = now;
+        return;
+    }
+    qualitySampleFrames += 1;
+    const elapsed = (now - qualitySampleStart) / 1000;
+    if (elapsed < QUALITY_SAMPLE_SECONDS) return;
+
+    qualitySettled = true;
+    const rate = qualitySampleFrames / elapsed;
+    if (rate >= QUALITY_FLOOR_FPS) return;
+    renderScaleCap = 1.5;
+    applyRenderScale();
+    resizeBackdrop();
+};
 
 // An empty loop while assets load, so the engine's compute work can proceed
 // before there is a scene to render. This is what their playground does too.
@@ -287,9 +326,6 @@ starSystemForSky.starFieldBox.mesh.setEnabled(false);
  * layer's default full-frame stretch is precisely right, because the texture is
  * already the right shape.
  */
-const COARSE_POINTER =
-    typeof window.matchMedia === "function" && window.matchMedia("(pointer: coarse)").matches;
-
 /**
  * Texture size, at the viewport's aspect ratio.
  *
@@ -653,6 +689,7 @@ scene.onBeforeRenderObservable.add(
             }
         }
 
+        watchRenderQuality();
         zoomBackdrop(p);
         applyReveal(p);
 
@@ -686,8 +723,7 @@ engine.runRenderLoop(() => {
 });
 
 window.addEventListener("resize", () => {
-    sizeCanvasLikeTheGame();
-    engine.resize(true);
+    applyRenderScale();
 });
 
 sceneReady = true;
