@@ -142,7 +142,7 @@ const CLEAR_COAT_ROUGHNESS = 0.011;
 const SPECULAR_INTENSITY = 1.5;
 
 /** A second light from behind and to the side, purely to catch the edges. */
-const RIM_INTENSITY = 0.6;
+const RIM_INTENSITY = 0.32;
 
 /** Extra roll from the sideways slide, so a move across the frame is flown into rather than slid. */
 const SLIDE_BANK = 0.5;
@@ -227,17 +227,19 @@ const starReflection = (scene: Scene): DynamicTexture => {
     const height = 512;
     const texture = new DynamicTexture("shipStarReflection", { width, height }, scene, false);
     const context = texture.getContext() as unknown as CanvasRenderingContext2D;
-    context.fillStyle = "#000";
+    // Not pure black. A mirror in a void is a black mirror, and the gaps between
+    // the sources would go dead — which is the thing being avoided here. A very
+    // dim floor keeps them reading as dark metal rather than as holes.
+    const floor = context.createLinearGradient(0, 0, 0, height);
+    floor.addColorStop(0, "#2a2f3a");
+    floor.addColorStop(0.48, "#12151b");
+    floor.addColorStop(0.52, "#08090d");
+    floor.addColorStop(1, "#14171e");
+    context.fillStyle = floor;
     context.fillRect(0, 0, width, height);
 
-    /** A soft source: centre, radii in pixels, and peak brightness. */
-    const softbox = (
-        cx: number,
-        cy: number,
-        rx: number,
-        ry: number,
-        peak: number,
-    ): void => {
+    /** A broad soft source, for sheen across the large panels. */
+    const softbox = (cx: number, cy: number, rx: number, ry: number, peak: number): void => {
         context.save();
         context.translate(cx, cy);
         context.scale(1, ry / rx);
@@ -252,15 +254,38 @@ const starReflection = (scene: Scene): DynamicTexture => {
         context.restore();
     };
 
-    // Overhead key, a long strip: this is the highlight that runs the length of
-    // the fuselage.
-    softbox(300, 118, 420, 86, 1);
-    // A second, further round, so turning the ship finds a new highlight rather
-    // than losing the only one.
-    softbox(768, 170, 300, 74, 0.95);
-    // Low and broad, to put light under the wing edges.
-    softbox(540, 398, 460, 130, 0.62);
-    softbox(58, 330, 250, 96, 0.55);
+    /**
+     * A hard-edged strip, for the streaks.
+     *
+     * Soft sources alone gave sheen but not chrome: mirrored at this roughness a
+     * smooth gradient is still a smooth gradient, and the hull read as polished
+     * paint. What makes a surface look like a mirror is showing something with
+     * edges in it, so these are bars with a definite end.
+     */
+    const strip = (x: number, y: number, w: number, h: number, peak: number, blur: number): void => {
+        context.save();
+        context.filter = `blur(${blur}px)`;
+        const gradient = context.createLinearGradient(x, y, x, y + h);
+        gradient.addColorStop(0, "rgba(255, 255, 255, 0)");
+        gradient.addColorStop(0.5, `rgba(255, 255, 255, ${peak})`);
+        gradient.addColorStop(1, "rgba(255, 255, 255, 0)");
+        context.fillStyle = gradient;
+        context.fillRect(x, y, w, h);
+        context.restore();
+    };
+
+    // Broad sheen first, so the strips sit on top of it.
+    softbox(300, 118, 460, 96, 0.88);
+    softbox(768, 170, 330, 84, 0.78);
+    softbox(540, 398, 500, 140, 0.5);
+    softbox(58, 330, 280, 110, 0.48);
+
+    // Then the streaks: overhead bars at different lengths, so a turn always
+    // brings a new one across the hull.
+    strip(150, 72, 470, 44, 1, 3);
+    strip(660, 128, 300, 30, 0.9, 2);
+    strip(40, 196, 250, 22, 0.75, 2);
+    strip(430, 246, 520, 16, 0.55, 4);
 
     // A fixed sequence, so the sky is the same every load.
     let seed = 20260822;
@@ -284,7 +309,7 @@ const starReflection = (scene: Scene): DynamicTexture => {
     return texture;
 };
 
-const KEY_INTENSITY = 0.85;
+const KEY_INTENSITY = 0.45;
 // Broad and soft, and doing most of the work now.
 //
 // A hull this far from the star has almost nothing lighting it: the sky is black
@@ -321,8 +346,8 @@ const FILL_INTENSITY = 0.08;
 // it darker, which is the opposite of silver. The silver comes from a bright,
 // slightly cool base under a polished coat; the metalness is only there for the
 // sheen, and the star map supplies the glints.
-const METALLIC = 0.92;
-const ROUGHNESS = 0.042;
+const METALLIC = 1.0;
+const ROUGHNESS = 0.014;
 
 /**
  * How much brighter the hull's reflections are than the sky that supplies them.
@@ -339,7 +364,7 @@ const ROUGHNESS = 0.042;
 // Above one on purpose. A mirror shows the brightness of what is around it, and
 // what is around this is mostly empty sky — so the sources have to be brighter
 // than life for the hull to read as chrome rather than as grey.
-const ENVIRONMENT_INTENSITY = 2.9;
+const ENVIRONMENT_INTENSITY = 3.4;
 
 /** Gentle idle motion so it never looks welded to the lens. */
 const DRIFT_PITCH = 0.014;
