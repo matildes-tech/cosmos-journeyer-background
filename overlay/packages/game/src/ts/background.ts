@@ -287,6 +287,9 @@ starSystemForSky.starFieldBox.mesh.setEnabled(false);
  * layer's default full-frame stretch is precisely right, because the texture is
  * already the right shape.
  */
+const COARSE_POINTER =
+    typeof window.matchMedia === "function" && window.matchMedia("(pointer: coarse)").matches;
+
 /**
  * Texture size, at the viewport's aspect ratio.
  *
@@ -329,7 +332,9 @@ const paintBackdrop = (): void => {
     const byWidth = size.width / backdropImage.naturalWidth;
     const byHeight = size.height / backdropImage.naturalHeight;
     const portrait = size.height > size.width;
-    const fit = portrait ? Math.max(byWidth, byHeight) : Math.min(byWidth, byHeight);
+    // Portrait starts slightly past cover, so the nebula is already close before
+    // the approach zoom adds anything.
+    const fit = portrait ? Math.max(byWidth, byHeight) * 1.15 : Math.min(byWidth, byHeight);
 
     const w = backdropImage.naturalWidth * fit;
     const h = backdropImage.naturalHeight * fit;
@@ -350,12 +355,38 @@ const resizeBackdrop = (): void => {
 window.addEventListener("resize", resizeBackdrop);
 window.addEventListener("orientationchange", resizeBackdrop);
 
+
+
 const backdrop = new Layer("backdrop", null, scene, true);
 backdrop.texture = backdropTexture;
 // Held back: at full strength it is the brightest thing on screen, and every
 // planet — backlit, since the flight runs sunward — becomes a black dot punched
 // out of it rather than a body with a lit limb.
 backdrop.color = new Color4(0.5, 0.5, 0.54, 1);
+
+/**
+ * How much the backdrop closes over the whole flight.
+ *
+ * A fixed layer is wallpaper: the volumetric clouds grow as the ship flies at
+ * them and the photograph does not, so it reads as painted on the inside of the
+ * screen. Zooming it with scroll gives it the one cue it was missing.
+ *
+ * Uniform, and applied through the layer's scale rather than by repainting —
+ * redrawing a viewport-sized canvas and re-uploading it every frame would cost
+ * far more than the whole rest of the backdrop.
+ *
+ * Phones get more of it. There is more empty frame to fill in portrait, and the
+ * subject starts further from the edges.
+ */
+const BACKDROP_APPROACH = COARSE_POINTER ? 0.55 : 0.3;
+const zoomBackdrop = (progress: number): void => {
+    const zoom = 1 + BACKDROP_APPROACH * progress;
+    backdrop.scale.x = zoom;
+    backdrop.scale.y = zoom;
+    backdrop.offset.x = (1 - zoom) / 2;
+    backdrop.offset.y = (1 - zoom) / 2;
+};
+zoomBackdrop(0);
 
 /**
  * The companion, turned right down.
@@ -529,6 +560,8 @@ scene.onBeforeRenderObservable.add(
                 entry.nebula.update(entry.world, cameraNow, deltaSeconds);
             }
         }
+
+        zoomBackdrop(p);
 
         const sweep = Matrix.RotationYawPitchRoll(SKY_YAW * p, SKY_PITCH * p * (1 - p) * 4, 0);
         starSystemForSky.starFieldBox.setRotationMatrix(
