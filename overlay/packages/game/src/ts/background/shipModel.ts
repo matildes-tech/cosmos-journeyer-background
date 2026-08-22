@@ -15,6 +15,8 @@ import { type AbstractMesh } from "@babylonjs/core/Meshes/abstractMesh";
 import { Quaternion, Vector3 } from "@babylonjs/core/Maths/math.vector";
 import { TransformNode } from "@babylonjs/core/Meshes/transformNode";
 import { type Scene } from "@babylonjs/core/scene";
+import { DynamicTexture } from "@babylonjs/core/Materials/Textures/dynamicTexture";
+import { Texture } from "@babylonjs/core/Materials/Textures/texture";
 
 import { lerpSmooth } from "@/utils/math";
 
@@ -137,10 +139,10 @@ const CLEAR_COAT_ROUGHNESS = 0.011;
  */
 // The shine comes from here instead: a hard, bright specular response to the
 // ship's own lights, which is a highlight rather than a reflection.
-const SPECULAR_INTENSITY = 4.6;
+const SPECULAR_INTENSITY = 1.5;
 
 /** A second light from behind and to the side, purely to catch the edges. */
-const RIM_INTENSITY = 7.0;
+const RIM_INTENSITY = 0.6;
 
 /** Extra roll from the sideways slide, so a move across the frame is flown into rather than slid. */
 const SLIDE_BANK = 0.5;
@@ -199,8 +201,61 @@ function modelOrientation(): Quaternion {
  * its own meshes by `includedOnlyMeshes`. Nothing else in the scene sees them,
  * so the planets keep their backlighting exactly as it was.
  */
-const KEY_INTENSITY = 13.0;
-const FILL_INTENSITY = 1.15;
+/**
+ * A reflection map that is black apart from stars.
+ *
+ * Built rather than loaded: it is a few hundred dots on a 1024x512 canvas, which
+ * is smaller than any file that could be shipped for it, and being procedural it
+ * can be seeded so the same sky comes back every run.
+ *
+ * Fixed equirectangular, so the map is anchored to the world rather than to the
+ * viewer: the glints then travel across the hull as the ship turns, which is the
+ * whole point of putting them there.
+ */
+let starMap: DynamicTexture | null = null;
+const starReflection = (scene: Scene): DynamicTexture => {
+    if (starMap !== null) return starMap;
+    const width = 1024;
+    const height = 512;
+    const texture = new DynamicTexture("shipStarReflection", { width, height }, scene, false);
+    const context = texture.getContext() as unknown as CanvasRenderingContext2D;
+    context.fillStyle = "#000";
+    context.fillRect(0, 0, width, height);
+
+    // A fixed sequence, so the sky is the same every load.
+    let seed = 20260822;
+    const random = (): number => {
+        seed = (seed * 1664525 + 1013904223) >>> 0;
+        return seed / 4294967296;
+    };
+    for (let i = 0; i < 1100; i++) {
+        const x = random() * width;
+        const y = random() * height;
+        const radius = 0.5 + random() * random() * 2.4;
+        const brightness = 0.45 + random() * 0.55;
+        context.fillStyle = `rgba(255, 253, 246, ${brightness.toFixed(3)})`;
+        context.beginPath();
+        context.arc(x, y, radius, 0, Math.PI * 2);
+        context.fill();
+    }
+    texture.update();
+    texture.coordinatesMode = Texture.FIXED_EQUIRECTANGULAR_MODE;
+    starMap = texture;
+    return texture;
+};
+
+// These were all tuned while Babylon was silently dropping most of them for want
+// of light slots, so each was carrying the others' work. With all three actually
+// reaching the hull they are a fraction of what they were.
+const KEY_INTENSITY = 1.05;
+// Broad and soft, and doing most of the work now.
+//
+// A hull this far from the star has almost nothing lighting it: the sky is black
+// by construction, so the environment contributes no irradiance at all, and a
+// single key leaves everything not facing it in shadow. Silver is a bright,
+// evenly lit surface with hard highlights on top — not a dark one with a
+// highlight, which is what this was.
+const FILL_INTENSITY = 0.16;
 
 /**
  * Mostly non-metal, deliberately.
@@ -224,8 +279,13 @@ const FILL_INTENSITY = 1.15;
 // Low metalness is what keeps the surroundings out of the paintwork: a metal
 // surface takes its colour almost entirely from what it reflects, and out here
 // that is the universe. A dielectric picks up highlights instead.
-const METALLIC = 0.09;
-const ROUGHNESS = 0.026;
+// Kept low on purpose. A metal has no diffuse term, so in a black sky a fully
+// metallic hull is a black hull — raising metalness to make it "more metal" made
+// it darker, which is the opposite of silver. The silver comes from a bright,
+// slightly cool base under a polished coat; the metalness is only there for the
+// sheen, and the star map supplies the glints.
+const METALLIC = 0.34;
+const ROUGHNESS = 0.032;
 
 /**
  * How much brighter the hull's reflections are than the sky that supplies them.
@@ -239,7 +299,7 @@ const ROUGHNESS = 0.026;
 // How much of the surrounding scene appears in the hull. Held right down —
 // this is the setting that decides whether it looks lacquered or looks like a
 // mirror ball with stars in it.
-const ENVIRONMENT_INTENSITY = 0.28;
+const ENVIRONMENT_INTENSITY = 1.0;
 
 /** Gentle idle motion so it never looks welded to the lens. */
 const DRIFT_PITCH = 0.014;
@@ -355,20 +415,34 @@ export class ShipModel {
                 reflectionTexture?: unknown;
                 clearCoat?: { isEnabled: boolean; intensity: number; roughness: number };
                 specularIntensity?: number;
+                maxSimultaneousLights?: number;
             } | null;
             if (material !== null && "metallic" in material) {
                 // The base colour has to be set, not inherited. The model ships
                 // a dark one and relies on a mirror finish to look bright; with
                 // the reflections turned down so the universe stays out of the
                 // paintwork, an unset albedo simply leaves a black silhouette.
-                material.albedoColor?.set(0.62, 0.65, 0.72);
+                material.albedoColor?.set(0.8, 0.83, 0.9);
                 material.metallic = METALLIC;
                 material.roughness = ROUGHNESS;
                 material.environmentIntensity = ENVIRONMENT_INTENSITY;
-                if (scene.environmentTexture !== null) {
-                    material.reflectionTexture = scene.environmentTexture;
-                }
+                // Stars only, never the void.
+                //
+                // Reflecting the scene's own environment means reflecting space,
+                // and space is almost entirely black — so a polished hull came
+                // out darker the shinier it was made, which is the opposite of
+                // what a mirror finish is for. This reflects a map that is black
+                // except for stars, so the only thing the surface picks up is
+                // their glint: raising metalness now makes it more silver rather
+                // than more black.
+                material.reflectionTexture = starReflection(scene);
                 material.specularIntensity = SPECULAR_INTENSITY;
+                // Babylon compiles a fixed number of lights into a material and
+                // silently drops the rest — four by default, against seven in
+                // this scene. The ship's own key, fill and rim were competing
+                // with the star system's for those slots, which is why raising
+                // the fill three-fold changed nothing at all on screen.
+                material.maxSimultaneousLights = 8;
                 if (material.clearCoat !== undefined) {
                     material.clearCoat.isEnabled = true;
                     material.clearCoat.intensity = 1;

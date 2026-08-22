@@ -277,6 +277,7 @@ const flight = new CorridorFlight(scene, starSystemView.getStarSystem(), layout)
 const pointer = new PointerInfluence();
 const driver = new CameraDriver(flight, pointer, controls.getTransform());
 const speedCue = new SpeedCue(scene, controls.getTransform(), profile.dustInstances);
+speedCue.setRenderingGroup(1);
 
 const scroller = new SmoothScroll();
 
@@ -1105,9 +1106,34 @@ window.__bg = {
         if (mode === "noshadows") scene.shadowsEnabled = false;
         if (mode === "shadows") scene.shadowsEnabled = true;
         if (mode === "noanim") scene.animationsEnabled = false;
+        if (mode === "anim") scene.animationsEnabled = true;
         if (mode === "nopost") scene.postProcessesEnabled = false;
         if (mode === "nolens") scene.lensFlaresEnabled = false;
         if (mode === "noparticles") scene.particlesEnabled = false;
+        if (mode.startsWith("ship:")) {
+            const what = mode.slice(5);
+            const mats = scene.materials.filter((m) => m.getClassName() === "PBRMaterial" && m.name === "material");
+            for (const m of mats) {
+                const any = m as unknown as Record<string, unknown>;
+                if (what === "red") (any["albedoColor"] as { set: (r: number, g: number, b: number) => void }).set(1, 0, 0);
+                if (what === "nocoat") (any["clearCoat"] as { isEnabled: boolean }).isEnabled = false;
+                if (what === "emis") (any["emissiveColor"] as { set: (r: number, g: number, b: number) => void }).set(0.45, 0.46, 0.5);
+                if (what === "notex") { any["albedoTexture"] = null; any["metallicTexture"] = null; any["bumpTexture"] = null; }
+            }
+            const m0 = mats[0] as unknown as Record<string, unknown> | undefined;
+            return `${mats.length} mats; albedoTex=${m0 && m0["albedoTexture"] ? "yes" : "no"} metalTex=${m0 && m0["metallicTexture"] ? "yes" : "no"} emis=${String(m0 && (m0["emissiveColor"] as {r:number}|undefined)?.r)}`;
+        }
+        if (mode === "ship") {
+            return scene.materials
+                .map((m) => {
+                    const any = m as unknown as Record<string, unknown>;
+                    const col = (any["albedoColor"] ?? any["baseColor"] ?? any["diffuseColor"]) as
+                        | { r: number; g: number; b: number }
+                        | undefined;
+                    return `${m.name}[${m.getClassName()}] col=${col ? col.r.toFixed(2) + "," + col.g.toFixed(2) + "," + col.b.toFixed(2) : "-"} metal=${String(any["metallic"] ?? any["baseMetalness"] ?? "-")} rough=${String(any["roughness"] ?? any["baseRoughness"] ?? "-")} env=${String(any["environmentIntensity"] ?? "-")}`;
+                })
+                .join(" | ");
+        }
         if (mode === "cull") {
             const cam = scene.activeCamera;
             const all = [...((cam?._postProcesses ?? []).filter(Boolean))];
