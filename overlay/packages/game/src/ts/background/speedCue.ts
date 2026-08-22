@@ -71,6 +71,22 @@ export class SpeedCue {
     }
 
     /**
+     * Draws the dust after the backdrop.
+     *
+     * The backdrop is an opaque plane a few units in front of the camera, and
+     * most of this dust is further out than that, so in the same rendering group
+     * the plane simply painted over it and the streaks disappeared. Near-field
+     * dust belongs in front of a backdrop in any case.
+     */
+    setRenderingGroup(id: number): void {
+        const transform = this.dots.getTransform();
+        const meshes = transform.getChildMeshes(false);
+        for (const mesh of meshes) mesh.renderingGroupId = id;
+        const asMesh = transform as unknown as { renderingGroupId?: number };
+        if (typeof asMesh.renderingGroupId === "number") asMesh.renderingGroupId = id;
+    }
+
+    /**
      * @param progressRate How fast scroll progress is changing, per second.
      * @param yawRate Camera turn rate about its up axis, radians per second.
      * @param pitchRate Camera turn rate about its right axis, radians per second.
