@@ -67,7 +67,9 @@ const DEFAULT_HEADING = 0;
 })();
 
 import { DynamicTexture } from "@babylonjs/core/Materials/Textures/dynamicTexture";
-import { Layer } from "@babylonjs/core/Layers/layer";
+import { CreatePlane } from "@babylonjs/core/Meshes/Builders/planeBuilder";
+import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
+import { Texture } from "@babylonjs/core/Materials/Textures/texture";
 
 import nebulaImage from "@assets/background/nebula-rosette.jpg";
 
@@ -418,12 +420,58 @@ window.addEventListener("orientationchange", resizeBackdrop);
 
 
 
-const backdrop = new Layer("backdrop", null, scene, true);
-backdrop.texture = backdropTexture;
-// Held back: at full strength it is the brightest thing on screen, and every
-// planet — backlit, since the flight runs sunward — becomes a black dot punched
-// out of it rather than a body with a lit limb.
-backdrop.color = new Color4(0.5, 0.5, 0.54, 1);
+/*  The backdrop is a plane on the camera, not a Layer.
+
+    A Layer cannot pan or zoom its image. Babylon's layer shader computes both
+    the vertex position and the UV from the same scaled-and-offset coordinate,
+    so `scale` and `offset` move the quad and its texture together: all they
+    change is which part of the screen the quad covers, never what is drawn
+    where. Proved rather than assumed — shifting the offset by a quarter of the
+    screen produced a frame indistinguishable from not shifting it at all.
+
+    A plane parented to the camera fills the frame the same way, and its texture
+    has a real UV transform, so the photograph can be moved for free in the
+    shader instead of being repainted and re-uploaded every frame. */
+const BACKDROP_DISTANCE = 12;
+const backdropPlane = CreatePlane("backdrop", { width: 1, height: 1 }, scene);
+// The rig, not the camera. A Babylon Camera does not propagate its transform to
+// children, so a mesh parented to one is left at the world origin — which, under
+// a floating origin, is nowhere near the flight. The ship hangs off the same
+// TransformNode for the same reason.
+backdropPlane.parent = controls.getTransform();
+// Forward is -Z on this rig, the way the ship's carrier is placed.
+backdropPlane.position.set(0, 0, -BACKDROP_DISTANCE);
+backdropPlane.isPickable = false;
+backdropPlane.alwaysSelectAsActiveMesh = true;
+backdropPlane.infiniteDistance = false;
+backdropPlane.renderingGroupId = 0;
+
+const backdropMaterial = new StandardMaterial("backdrop", scene);
+backdropMaterial.diffuseColor = Color3.Black();
+backdropMaterial.specularColor = Color3.Black();
+backdropMaterial.emissiveTexture = backdropTexture;
+backdropMaterial.disableLighting = true;
+backdropMaterial.disableDepthWrite = true;
+backdropMaterial.backFaceCulling = false;
+backdropMaterial.fogEnabled = false;
+backdropPlane.material = backdropMaterial;
+
+// Held back through the texture's own level rather than a colour: Babylon adds
+// emissiveColor to emissiveTexture, so a grey there lays flat grey over the
+// whole frame instead of dimming the photograph. At full strength it is the
+// brightest thing on screen and every planet — backlit, since the flight runs
+// sunward — becomes a black dot punched out of it rather than a lit limb.
+backdropTexture.level = 0.5;
+backdropTexture.wrapU = Texture.CLAMP_ADDRESSMODE;
+backdropTexture.wrapV = Texture.CLAMP_ADDRESSMODE;
+
+/** Sized to exactly fill the frustum at its distance, so the frame is covered. */
+const fitBackdropPlane = (): void => {
+    const height = 2 * BACKDROP_DISTANCE * Math.tan(camera.fov / 2);
+    backdropPlane.scaling.set(height * engine.getAspectRatio(camera), height, 1);
+};
+fitBackdropPlane();
+window.addEventListener("resize", fitBackdropPlane);
 
 /**
  * How the backdrop moves.
@@ -484,6 +532,12 @@ const BREATHE_RATE = 0.1;
 let parallaxYaw = 0;
 let parallaxPitch = 0;
 let backdropClock = 0;
+/** Keeps the sampled window inside the image, so an edge can never come into frame. */
+const clampPan = (value: number, margin: number): number =>
+    Math.max(-margin, Math.min(margin, value));
+/** Debug only: a constant added to the offset so a nudge survives the next frame. */
+let debugOffsetX = 0;
+let debugOffsetY = 0;
 
 const driveBackdrop = (
     progress: number,
@@ -505,10 +559,16 @@ const driveBackdrop = (
     const driftX = DRIFT_X * Math.sin(backdropClock * DRIFT_X_RATE);
     const driftY = DRIFT_Y * Math.sin(backdropClock * DRIFT_Y_RATE);
 
-    backdrop.scale.x = zoom;
-    backdrop.scale.y = zoom;
-    backdrop.offset.x = (1 - zoom) / 2 + slideX + driftX;
-    backdrop.offset.y = (1 - zoom) / 2 + slideY + driftY;
+    // Zooming in means sampling a smaller window of the image, so the scale is
+    // the reciprocal; the offset then re-centres that window and the pans move
+    // it. Clamped addressing means the window must stay inside the image, which
+    // is what bounds the drift.
+    const window_ = 1 / zoom;
+    const margin = (1 - window_) / 2;
+    backdropTexture.uScale = window_;
+    backdropTexture.vScale = window_;
+    backdropTexture.uOffset = margin + clampPan(slideX + driftX + debugOffsetX, margin);
+    backdropTexture.vOffset = margin + clampPan(slideY + driftY + debugOffsetY, margin);
 };
 driveBackdrop(0, 0, 0, 0);
 
@@ -782,6 +842,101 @@ const applyReveal = (progress: number): void => {
     });
 };applyReveal(0);
 
+/*  Cost control, measured rather than assumed.
+ *
+ *  The camera carries fourteen full-screen post-process passes, and five of them
+ *  are per-planet uber-shaders — Mars, Earth, Neptune, Saturn, Jupiter — each
+ *  raymarching atmosphere, ocean, cloud and ring over the whole frame every
+ *  frame, whether that planet fills the shot or is four pixels across on the far
+ *  side of the corridor. Measured: 24fps with all of them, 37fps with four of
+ *  them detached, and the chain stays as it is left.
+ *
+ *  The flight passes one body at a time, so a body's pass is attached only while
+ *  it is the one in play — from the moment the previous body is behind us until
+ *  a little after this one is. Detaching and reattaching the whole chain in its
+ *  original order is what keeps the passes composing in the order their author
+ *  intended.
+ */
+type CameraPass = { name: string };
+type PassHost = {
+    _postProcesses: Array<CameraPass | null>;
+    attachPostProcess: (pass: CameraPass, at?: number) => number;
+    detachPostProcess: (pass: CameraPass) => void;
+};
+const passHost = camera as unknown as PassHost;
+
+/*  Captured on the first frame the passes actually exist.
+ *
+ *  Reading the chain when this module runs finds it empty: the per-body passes
+ *  are built with the bodies, which happens later. Capturing once, as soon as at
+ *  least one body pass is present, is also what stops a later recapture from
+ *  seeing a chain this code has already thinned and forgetting the rest. */
+let fullChain: Array<CameraPass> = [];
+const bodyPasses = new Map<CameraPass, number>();
+let captured = false;
+
+const isBodyPass = (pass: CameraPass): number | undefined => {
+    const name = pass.name.toLowerCase();
+    const index = STOPS.findIndex((stop) => name.startsWith(stop.objectId.toLowerCase()));
+    return index === -1 ? undefined : index;
+};
+
+const captureChain = (): void => {
+    if (captured) return;
+    const current = (passHost._postProcesses ?? []).filter(
+        (pass): pass is CameraPass => pass !== null && pass !== undefined,
+    );
+    if (!current.some((pass) => isBodyPass(pass) !== undefined)) return;
+    fullChain = current;
+    for (const pass of fullChain) {
+        const index = isBodyPass(pass);
+        if (index !== undefined) bodyPasses.set(pass, index);
+    }
+    captured = true;
+};
+
+/** Kept on from just before the previous body is passed until just after this one. */
+const PASS_LEAD = 0.03;
+const PASS_TRAIL = 0.05;
+const wantsPass = (index: number, progress: number): boolean => {
+    const start = index === 0 ? -1 : layout.stopProgress(index - 1) - PASS_LEAD;
+    return progress >= start && progress <= layout.stopProgress(index) + PASS_TRAIL;
+};
+
+let attachedSignature = "";
+const syncBodyPasses = (progress: number): void => {
+    captureChain();
+    if (bodyPasses.size === 0) return;
+
+    // Compared against what is actually attached, not against what was attached
+    // last time this ran. Cosmos Journeyer reattaches a body's pass itself when
+    // that body comes into range, so remembering our own last decision quietly
+    // stops being true and the chain creeps back to full.
+    const attached = passHost._postProcesses ?? [];
+    let want = "";
+    let have = "";
+    for (const [pass, index] of bodyPasses) {
+        want += wantsPass(index, progress) ? "1" : "0";
+        have += attached.includes(pass) ? "1" : "0";
+    }
+    attachedSignature = want;
+    if (want === have) return;
+
+    for (const pass of fullChain) passHost.detachPostProcess(pass);
+    for (const pass of fullChain) {
+        const index = bodyPasses.get(pass);
+        if (index !== undefined && !wantsPass(index, progress)) continue;
+        passHost.attachPostProcess(pass);
+    }
+};
+
+/*  Neither of these is visible on this page and both were measured costing real
+    frames: shadow maps are fixed-resolution targets rendered every frame for a
+    scene lit by a star a hundred million kilometres away, and the animation
+    system is stepping groups nothing here reads.  */
+scene.shadowsEnabled = false;
+scene.animationsEnabled = false;
+
 scene.onBeforeRenderObservable.add(
     () => {
         // Clamped for the same reason as the scroll loop: an unclamped delta
@@ -813,6 +968,7 @@ scene.onBeforeRenderObservable.add(
             }
         }
 
+        syncBodyPasses(p);
         watchRenderQuality();
         driveBackdrop(p, deltaSeconds, driver.getYawRate(), driver.getPitchRate());
         applyReveal(p);
@@ -875,6 +1031,9 @@ declare global {
             shipOffset: () => number;
             cameraHeading: () => number;
             backdrop: () => string;
+            nudgeBackdrop: (x: number, y: number) => string;
+            bgTest: (mode: string) => string;
+            perfTest: (mode: string) => string;
             recordShip: (ms: number) => Promise<string>;
         };
     }
@@ -901,7 +1060,40 @@ window.__bg = {
     shipOffset: () => ship?.frameOffset() ?? 0,
     cameraHeading: () => layout.headingOffset(driver.getProgress()),
     backdrop: () =>
-        `${backdrop.offset.x.toFixed(4)} ${backdrop.offset.y.toFixed(4)} ${backdrop.scale.x.toFixed(4)}`,
+        `${backdropTexture.uOffset.toFixed(4)} ${backdropTexture.vOffset.toFixed(4)} ${backdropTexture.uScale.toFixed(4)}`,
+    perfTest: (mode: string) => {
+        if (mode === "cullstate") return `captured=${captured} bodyPasses=${bodyPasses.size} chain=${fullChain.length} sig=${attachedSignature}`;
+        if (mode === "noshadows") scene.shadowsEnabled = false;
+        if (mode === "shadows") scene.shadowsEnabled = true;
+        if (mode === "noanim") scene.animationsEnabled = false;
+        if (mode === "nopost") scene.postProcessesEnabled = false;
+        if (mode === "nolens") scene.lensFlaresEnabled = false;
+        if (mode === "noparticles") scene.particlesEnabled = false;
+        if (mode === "cull") {
+            const cam = scene.activeCamera;
+            const all = [...((cam?._postProcesses ?? []).filter(Boolean))];
+            const drop = all.filter((q) => /UberShaderPass/.test(q.name)).slice(0, 4);
+            for (const q of drop) cam?.detachPostProcess(q);
+            return `detached ${drop.length}: ${drop.map((q) => q.name).join(", ")}`;
+        }
+        if (mode === "list") {
+            const cam = scene.activeCamera;
+            const own = (cam?._postProcesses ?? []).filter(Boolean);
+            return `camera passes (${own.length}): ` + own.map((q) => `${q.name}@${q.width}x${q.height}`).join(", ");
+        }
+        const gens = scene.lights.reduce((n, l) => n + (l.getShadowGenerator() ? 1 : 0), 0);
+        return `shadows=${scene.shadowsEnabled} gens=${gens} lights=${scene.lights.length} meshes=${scene.meshes.length} post=${scene.postProcessesEnabled}`;
+    },
+    bgTest: (mode: string) => {
+        if (mode === "off") backdropPlane.setEnabled(false);
+        if (mode === "on") backdropPlane.setEnabled(true);
+        return `enabled=${backdropPlane.isEnabled()}`;
+    },
+    nudgeBackdrop: (x: number, y: number) => {
+        debugOffsetX += x;
+        debugOffsetY += y;
+        return `${debugOffsetX.toFixed(4)} ${debugOffsetY.toFixed(4)}`;
+    },
     // Samples the ship's position once per rendered frame. Sampling it from
     // outside over the debugging protocol gives uneven intervals, which makes
     // smooth motion look jerky and jerky motion look smooth — the numbers have

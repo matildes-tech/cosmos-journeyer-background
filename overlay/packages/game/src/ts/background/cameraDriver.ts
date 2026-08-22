@@ -32,7 +32,7 @@ const COARSE =
 // then eased again here, and two exponentials in series read as lag rather than
 // as calm. The glide upstream is the one doing the smoothing; this only has to
 // take the edge off the handover.
-const HALF_LIFE = COARSE ? 0.03 : 0.038;
+const HALF_LIFE = COARSE ? 0.03 : 0.045;
 
 /**
  * Ceiling on how fast the camera may turn, in radians per second.
