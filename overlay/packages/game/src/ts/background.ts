@@ -134,9 +134,25 @@ const engine = new Engine(canvas, true, {
 });
 engine.useReverseDepthBuffer = true;
 
+/**
+ * Ceiling on render scale.
+ *
+ * The canvas used to be sized in CSS pixels, which on a phone at device ratio 3
+ * meant rendering 430x775 and stretching it across 1290x2325 — every rendered
+ * pixel smeared over nine real ones. That is what makes the background look
+ * soft, and it is what turns every hard diagonal, a planet's limb or the ship's
+ * wing, into a staircase.
+ *
+ * Two is the sweet spot rather than three: the step from 1x to 2x removes
+ * essentially all of the visible aliasing, while 3x costs more than twice again
+ * for a difference nobody can see at arm's length.
+ */
+const RENDER_SCALE_CAP = 2;
+
 const sizeCanvasLikeTheGame = (): void => {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+    const ratio = Math.min(window.devicePixelRatio || 1, RENDER_SCALE_CAP);
+    canvas.width = Math.round(window.innerWidth * ratio);
+    canvas.height = Math.round(window.innerHeight * ratio);
 };
 sizeCanvasLikeTheGame();
 

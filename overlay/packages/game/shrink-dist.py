@@ -18,7 +18,16 @@ FLOOR = 400_000  # leave anything already small alone
 #  Never touch the brand mark. It is displayed at up to 46rem — larger than the
 #  cap this script enforces — so shrinking it visibly softens the one asset on
 #  the page whose crispness anyone will actually notice.
-KEEP = ("starktronix-logo",)
+#  Anything the flight actually looks at. These are on screen at full size —
+#  a planet fills thirty degrees of frame — so capping them is not an
+#  optimisation, it is visible damage. Jupiter shipped at 512x256 before this
+#  list existed.
+KEEP = (
+    "starktronix-logo",
+    "jupiter", "saturn", "neptune", "uranus", "mercury", "venus", "earth", "mars", "moon",
+    "ring", "milkyway", "star", "sun", "flare",
+    "perlin",  # procedural noise: detail everywhere depends on it
+)
 
 saved = 0
 touched = 0
@@ -26,7 +35,7 @@ for root, _, files in os.walk(DIST):
     for name in files:
         if not name.lower().endswith(('.webp', '.png', '.jpg', '.jpeg')):
             continue
-        if any(k in name for k in KEEP):
+        if any(k in name.lower() for k in KEEP):
             continue
         path = os.path.join(root, name)
         before = os.path.getsize(path)
