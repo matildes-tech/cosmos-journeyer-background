@@ -544,7 +544,14 @@ for (const flare of starSystemView.postProcessManager.lensFlares) {
  * slide changing; a stagger reads as something being said.
  */
 const panels = Array.from(document.querySelectorAll<HTMLElement>(".panel"));
-const RISE_PX = 18;
+/**
+ * Vertical travel, in pixels.
+ *
+ * Measured off the live reference: it moves eight pixels, not the twenty a first
+ * guess reaches for. At this size the movement is barely perceptible as movement
+ * — it reads as the text settling rather than sliding.
+ */
+const RISE_PX = 8;
 const STAGGER = 0.07;
 
 const smoothstep = (x: number): number => {
@@ -570,8 +577,16 @@ const applyReveal = (progress: number): void => {
             const element = node as HTMLElement;
             const isHeadline = element.classList.contains("headline");
             const value = isHeadline ? lead : trail;
+            const shifted = Math.min(1, Math.max(0, local - (isHeadline ? 0 : STAGGER)));
+
+            // Drift, not a bounce. On the reference the offset runs from +8
+            // through 0 to -8 across a block's life, so it keeps moving the same
+            // way the whole time; tying the offset to opacity instead makes it
+            // rise in and then sink back out the way it came, which reads as an
+            // effect rather than as motion.
+            const offset = RISE_PX * (1 - 2 * shifted);
             element.style.opacity = String(value);
-            element.style.transform = `translateY(${((1 - value) * RISE_PX).toFixed(2)}px)`;
+            element.style.transform = `translateY(${offset.toFixed(2)}px)`;
         }
     });
 };
