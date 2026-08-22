@@ -88,7 +88,11 @@ export class SmoothScroll {
 
         this.onResize = () => this.measure();
 
-        window.addEventListener("wheel", this.onWheel, { passive: false });
+        // The wheel is only captured where there is a wheel. On touch this class
+        // reads the document and never writes to it.
+        if (!COARSE) {
+            window.addEventListener("wheel", this.onWheel, { passive: false });
+        }
         window.addEventListener("scroll", this.onScroll, { passive: true });
         window.addEventListener("resize", this.onResize);
     }
@@ -102,6 +106,19 @@ export class SmoothScroll {
     update(deltaSeconds: number): void {
         if (this.maximum <= 0) {
             this.measure();
+            return;
+        }
+
+        // Touch: follow the document, never drive it.
+        //
+        // On iOS a programmatic scroll during a momentum fling cancels the fling
+        // outright. Easing the document here meant calling scrollTo on almost
+        // every frame, so every flick died the instant the finger left the glass
+        // and scrolling felt broken. There is nothing to smooth in any case —
+        // the browser's own momentum is already smooth, and a finger is direct.
+        if (COARSE) {
+            this.current = window.scrollY;
+            this.target = this.current;
             return;
         }
         this.current = lerpSmooth(this.current, this.target, HALF_LIFE, deltaSeconds);
@@ -120,7 +137,9 @@ export class SmoothScroll {
     }
 
     dispose(): void {
-        window.removeEventListener("wheel", this.onWheel);
+        if (!COARSE) {
+            window.removeEventListener("wheel", this.onWheel);
+        }
         window.removeEventListener("scroll", this.onScroll);
         window.removeEventListener("resize", this.onResize);
     }

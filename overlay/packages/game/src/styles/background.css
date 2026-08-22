@@ -867,3 +867,15 @@ a.hud-key:hover { color: #fff; }
     .endcard-back { align-items: flex-start; }
     #endcard-legal { text-align: left; }
 }
+
+
+/*  Vertical panning must survive the engine.
+
+    Babylon writes `touch-action: none` onto the body as an inline style when it
+    takes the canvas. Setting it back once at startup is not enough if the engine
+    reapplies it later, and a stylesheet rule marked important outranks a plain
+    inline style — which is the one case where that is the correct tool rather
+    than a shortcut.  */
+body {
+    touch-action: pan-y !important;
+}
