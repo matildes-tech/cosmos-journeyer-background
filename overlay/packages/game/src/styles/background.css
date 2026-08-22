@@ -879,3 +879,20 @@ a.hud-key:hover { color: #fff; }
 body {
     touch-action: pan-y !important;
 }
+
+
+/*  The copy's opacity and offset are written every frame from flight progress,
+    so nothing here may transition them — a CSS transition on top would lag the
+    value being set and the text would swim behind its own animation.  */
+.headline,
+.lede,
+.subline,
+.telemetry,
+.hud-name,
+.hud-meta,
+.hud-note,
+.hud-index,
+.hud-keys {
+    transition: none;
+    will-change: opacity, transform;
+}

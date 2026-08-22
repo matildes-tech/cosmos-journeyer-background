@@ -332,9 +332,11 @@ const paintBackdrop = (): void => {
     const byWidth = size.width / backdropImage.naturalWidth;
     const byHeight = size.height / backdropImage.naturalHeight;
     const portrait = size.height > size.width;
-    // Portrait starts slightly past cover, so the nebula is already close before
-    // the approach zoom adds anything.
-    const fit = portrait ? Math.max(byWidth, byHeight) * 1.15 : Math.min(byWidth, byHeight);
+    // Portrait sits exactly at cover: no further in, and no black bars either.
+    // Going under cover would pull the image away from the frame edges, and with
+    // a starfield across the whole image those gaps read as bars rather than as
+    // space.
+    const fit = portrait ? Math.max(byWidth, byHeight) : Math.min(byWidth, byHeight);
 
     const w = backdropImage.naturalWidth * fit;
     const h = backdropImage.naturalHeight * fit;
@@ -378,7 +380,7 @@ backdrop.color = new Color4(0.5, 0.5, 0.54, 1);
  * Phones get more of it. There is more empty frame to fill in portrait, and the
  * subject starts further from the edges.
  */
-const BACKDROP_APPROACH = COARSE_POINTER ? 0.55 : 0.3;
+const BACKDROP_APPROACH = COARSE_POINTER ? 0.28 : 0.18;
 const zoomBackdrop = (progress: number): void => {
     const zoom = 1 + BACKDROP_APPROACH * progress;
     backdrop.scale.x = zoom;
@@ -530,6 +532,51 @@ for (const flare of starSystemView.postProcessManager.lensFlares) {
 // insertFirst puts the camera write ahead of Cosmos Journeyer's own frame
 // callback, so its orbital update and post-processing — atmospheric scattering
 // reads the camera position — see this frame's camera, not the last one's.
+/**
+ * Copy fades and rises into place, and back out again.
+ *
+ * Driven from flight progress rather than from an intersection observer: the
+ * camera is already eased away from the raw scroll position, and text keyed to
+ * the scrollbar arrives before the world it describes. Sharing one clock keeps
+ * them together.
+ *
+ * The secondary block trails the headline slightly. A uniform fade reads as a
+ * slide changing; a stagger reads as something being said.
+ */
+const panels = Array.from(document.querySelectorAll<HTMLElement>(".panel"));
+const RISE_PX = 18;
+const STAGGER = 0.07;
+
+const smoothstep = (x: number): number => {
+    const t = Math.min(1, Math.max(0, x));
+    return t * t * (3 - 2 * t);
+};
+
+/** In over the first quarter of a panel, out over its last fifth. */
+const revealAt = (local: number, delay: number): number => {
+    const shifted = local - delay;
+    return smoothstep(shifted / 0.25) * (1 - smoothstep((shifted - 0.8) / 0.2));
+};
+
+const applyReveal = (progress: number): void => {
+    const span = 1 / Math.max(1, panels.length);
+    panels.forEach((panel, index) => {
+        const local = (progress - index * span) / span;
+        if (local < -0.3 || local > 1.4) return;
+
+        const lead = revealAt(local, 0);
+        const trail = revealAt(local, STAGGER);
+        for (const node of Array.from(panel.children[0]?.children ?? [])) {
+            const element = node as HTMLElement;
+            const isHeadline = element.classList.contains("headline");
+            const value = isHeadline ? lead : trail;
+            element.style.opacity = String(value);
+            element.style.transform = `translateY(${((1 - value) * RISE_PX).toFixed(2)}px)`;
+        }
+    });
+};
+applyReveal(0);
+
 scene.onBeforeRenderObservable.add(
     () => {
         // Clamped for the same reason as the scroll loop: an unclamped delta
@@ -562,6 +609,7 @@ scene.onBeforeRenderObservable.add(
         }
 
         zoomBackdrop(p);
+        applyReveal(p);
 
         const sweep = Matrix.RotationYawPitchRoll(SKY_YAW * p, SKY_PITCH * p * (1 - p) * 4, 0);
         starSystemForSky.starFieldBox.setRotationMatrix(
