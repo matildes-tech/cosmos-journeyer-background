@@ -27,33 +27,38 @@
              frame reaches white, holds, then crossfades to this. -->
         <footer id="endcard">
             <div class="endcard-inner">
-                <img id="endcard-mark" src="./src/asset/background/starktronix-logo.png" alt="Starktronix" />
-                <p id="endcard-line">Placeholder closing line — one sentence about what happens next.</p>
+                <!-- The panel the reference fills with a headline. Here the mark
+                     is the statement, so it carries the mark instead. -->
+                <div class="endcard-panel">
+                    <img class="endcard-panel-mark" src="./src/asset/background/starktronix-logo.png" alt="Starktronix" />
+                </div>
 
-                <div class="endcard-cols">
+                <div class="endcard-grid">
+                    <div class="endcard-news">
+                        <h4>Newsletter</h4>
+                        <form id="endcard-form" class="endcard-form" novalidate>
+                            <input type="email" name="email" placeholder="Enter Your Email" aria-label="Email address" />
+                            <button type="submit">Submit</button>
+                        </form>
+                        <p class="endcard-news-note">Placeholder line — what a reader gets by leaving an address.</p>
+                    </div>
+
                     <div class="endcard-col">
-                        <h4>Sections</h4>
+                        <h4>Product</h4>
                         <a href="#technology">Technology</a>
                         <a href="#capabilities">Capabilities</a>
                         <a href="#solutions">Solutions</a>
                         <a href="#network">Network</a>
                         <a href="#scale">Scale</a>
                     </div>
+
                     <div class="endcard-col">
                         <h4>Company</h4>
                         <a href="#hero">About</a>
                         <a href="#hero">Careers</a>
                         <a href="#hero">Press</a>
                         <a href="#hero">Partners</a>
-                    </div>
-                    <div class="endcard-col">
-                        <h4>Contact</h4>
-                        <a href="mailto:hello@starktronix.com">hello@starktronix.com</a>
-                        <a href="#hero">LinkedIn</a>
-                        <a href="#hero">Instagram</a>
-                    </div>
-                    <div class="endcard-col endcard-back">
-                        <a class="endcard-top" href="#hero">Back to top <span aria-hidden="true">&uarr;</span></a>
+                        <a href="mailto:hello@starktronix.com">Contact</a>
                     </div>
                 </div>
 
@@ -85,6 +90,9 @@
         </p>
 
         <header id="topbar">
+            <button id="navtoggle" class="burger" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="navsheet">
+                <span></span><span></span><span></span>
+            </button>
             <a class="mark" href="#hero" aria-label="Starktronix">
                 <img src="./src/asset/background/starktronix-logo.png" alt="Starktronix" />
             </a>
@@ -95,8 +103,25 @@
                 <a href="#network">Network</a>
                 <a href="#scale">Scale</a>
             </nav>
-            <a class="cta" href="#contact">Get in touch</a>
+            <a class="cta" href="#contact" aria-label="Get in touch">
+                <span class="cta-text">Get in touch</span>
+                <span class="cta-icon" aria-hidden="true">&#8599;</span>
+            </a>
         </header>
+
+        <!-- The phone menu. Same anchors as the bar; it exists because the bar
+             on a phone has room for a mark and one action, not five links. -->
+        <div id="navsheet-scrim"></div>
+        <div id="navsheet">
+            <nav aria-label="Sections">
+                <a href="#technology">Technology</a>
+                <a href="#capabilities">Capabilities</a>
+                <a href="#solutions">Solutions</a>
+                <a href="#network">Network</a>
+                <a href="#scale">Scale</a>
+            </nav>
+            <a class="navsheet-cta" href="#contact">Get in touch</a>
+        </div>
 
         <!-- Seven sections for seven points on the flight. Each section fills the
              viewport at exactly the scroll position where its subject is framed,

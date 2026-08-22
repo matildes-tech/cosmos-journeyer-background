@@ -559,6 +559,17 @@ const smoothstep = (x: number): number => {
     return t * t * (3 - 2 * t);
 };
 
+/**
+ * When the loader hands the page over, on the performance clock.
+ *
+ * The first panel is the one that cannot be keyed to scroll. At rest the scroll
+ * position is zero, and a scroll-keyed reveal at zero is an empty screen — which
+ * is why the hero copy used to appear only once the reader started moving. On
+ * the reference the hero is already there when the page settles, so it plays
+ * once, on arrival, and only its exit is keyed to the flight.
+ */
+let introStart = 0;
+
 /** In over the first quarter of a panel, out over its last fifth. */
 const revealAt = (local: number, delay: number): number => {
     const shifted = local - delay;
@@ -567,25 +578,44 @@ const revealAt = (local: number, delay: number): number => {
 
 const applyReveal = (progress: number): void => {
     const span = 1 / Math.max(1, panels.length);
+    const introT = introStart === 0 ? 0 : (performance.now() - introStart) / 1000;
+
     panels.forEach((panel, index) => {
         const local = (progress - index * span) / span;
-        if (local < -0.3 || local > 1.4) return;
+        const isHero = index === 0;
 
-        const lead = revealAt(local, 0);
-        const trail = revealAt(local, STAGGER);
+        // Every panel is written every frame, including the ones far off screen.
+        // Skipping them to save work was the bug: a panel outside the window kept
+        // whatever style it last had — or, before its first frame, none at all —
+        // so it scrolled up into view at full opacity and only then snapped to
+        // zero and played its entrance.
         for (const node of Array.from(panel.children[0]?.children ?? [])) {
             const element = node as HTMLElement;
             const isHeadline = element.classList.contains("headline");
-            const value = isHeadline ? lead : trail;
-            const shifted = Math.min(1, Math.max(0, local - (isHeadline ? 0 : STAGGER)));
+            const delay = isHeadline ? 0 : STAGGER;
+            const shifted = Math.min(1, Math.max(0, local - delay));
 
-            // Drift, not a bounce. On the reference the offset runs from +8
-            // through 0 to -8 across a block's life, so it keeps moving the same
-            // way the whole time; tying the offset to opacity instead makes it
-            // rise in and then sink back out the way it came, which reads as an
-            // effect rather than as motion.
-            const offset = RISE_PX * (1 - 2 * shifted);
-            element.style.opacity = String(value);
+            let value: number;
+            let offset: number;
+
+            if (isHero) {
+                const arrived = smoothstep((introT - (isHeadline ? 0 : 0.18)) / 0.65);
+                const leaving = 1 - smoothstep((local - delay - 0.8) / 0.2);
+                value = arrived * leaving;
+                // Settles from +8 to 0 on arrival, then carries on to -8 as the
+                // flight leaves it behind: one continuous travel, not two.
+                offset = RISE_PX * (1 - arrived) - RISE_PX * shifted;
+            } else {
+                value = revealAt(local, delay);
+                // Drift, not a bounce. On the reference the offset runs from +8
+                // through 0 to -8 across a block's life, so it keeps moving the
+                // same way the whole time; tying the offset to opacity instead
+                // makes it rise in and then sink back out the way it came, which
+                // reads as an effect rather than as motion.
+                offset = RISE_PX * (1 - 2 * shifted);
+            }
+
+            element.style.opacity = value.toFixed(3);
             element.style.transform = `translateY(${offset.toFixed(2)}px)`;
         }
     });
@@ -663,6 +693,7 @@ window.addEventListener("resize", () => {
 sceneReady = true;
 loader.classList.add("done");
 document.body.classList.add("ready");
+introStart = performance.now();
 
 // Exposed so the verification harness can read camera state without scraping pixels.
 declare global {
@@ -827,3 +858,34 @@ if (params.has("debug")) {
             `stops ${STOPS.length}  tier ${profile.tier}`;
     }, 200);
 }
+
+
+/*  Phone navigation.
+
+    On a phone the bar carries a mark and one action, so the section links move
+    into a sheet behind a button rather than being dropped. The links are the
+    same anchors as the desktop bar; nothing here knows about the flight, it
+    only opens and closes.  */
+const navToggle = document.getElementById("navtoggle");
+const closeNav = (): void => {
+    document.body.classList.remove("nav-open");
+    navToggle?.setAttribute("aria-expanded", "false");
+};
+navToggle?.addEventListener("click", () => {
+    const open = document.body.classList.toggle("nav-open");
+    navToggle.setAttribute("aria-expanded", open ? "true" : "false");
+});
+for (const link of Array.from(document.querySelectorAll<HTMLElement>("#navsheet a"))) {
+    link.addEventListener("click", closeNav);
+}
+document.getElementById("navsheet-scrim")?.addEventListener("click", closeNav);
+
+/*  The newsletter field has nothing behind it yet. Left as a plain form it would
+    navigate away from the page on submit, which is a worse answer than saying
+    nothing happened.  */
+const newsletter = document.getElementById("endcard-form") as HTMLFormElement | null;
+newsletter?.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const button = newsletter.querySelector("button");
+    if (button !== null) button.textContent = "Thanks";
+});
