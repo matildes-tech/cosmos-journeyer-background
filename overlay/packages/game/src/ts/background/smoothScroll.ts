@@ -24,6 +24,11 @@ const COARSE =
  */
 const HALF_LIFE = COARSE ? 0.022 : 0.05;
 
+/** Quiet time in front of a wheel event for it to count as a new gesture. */
+const GESTURE_GAP = 160;
+/** Floor on how long a page takes, so a fast wheel cannot double-step. */
+const PAGE_MIN_MS = 260;
+
 /**
  * Wheel delta multiplier.
  *
@@ -55,6 +60,9 @@ export class SmoothScroll {
     private maximum = 0;
     /** Set immediately before we move the page, so our own scroll event is not mistaken for the user's. */
     private selfScrolling = false;
+    private lastWheel = 0;
+    private paging = false;
+    private pagingSince = 0;
 
     private readonly onWheel: (e: WheelEvent) => void;
     private readonly onScroll: () => void;
@@ -69,7 +77,21 @@ export class SmoothScroll {
             // Leave zoom and horizontal gestures to the browser.
             if (e.ctrlKey || e.metaKey || Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
             e.preventDefault();
-            this.target = clamp(this.target + e.deltaY * WHEEL_SCALE, 0, this.maximum);
+            if (Math.abs(e.deltaY) < 2) return;
+
+            // One gesture, one section.
+            //
+            // A wheel does not send one event per flick — a notch sends a burst,
+            // and a trackpad sends a stream that carries on coasting for about a
+            // second after the fingers leave. So a gesture is recognised by the
+            // gap in front of it: the first event after a quiet moment pages,
+            // and everything still arriving belongs to the same gesture and is
+            // swallowed.
+            const now = performance.now();
+            const startsGesture = now - this.lastWheel > GESTURE_GAP;
+            this.lastWheel = now;
+            if (!startsGesture || this.paging) return;
+            this.page(e.deltaY > 0 ? 1 : -1);
         };
 
         this.onScroll = () => {
@@ -95,6 +117,47 @@ export class SmoothScroll {
         }
         window.addEventListener("scroll", this.onScroll, { passive: true });
         window.addEventListener("resize", this.onResize);
+    }
+
+    /**
+     * Where a section begins, in document pixels.
+     *
+     * Read from the sections themselves rather than computed from a height, so
+     * it stays true if the layout changes. The end of the document is a stop in
+     * its own right: the closing panel lives past the last section.
+     */
+    private stops(): Array<number> {
+        const panels = Array.from(document.querySelectorAll<HTMLElement>(".panel"));
+        const tops = panels.map((panel) => clamp(panel.offsetTop, 0, this.maximum));
+        if (tops.length === 0 || (tops[tops.length - 1] ?? 0) < this.maximum - 1) {
+            tops.push(this.maximum);
+        }
+        return tops;
+    }
+
+    /** Moves one section, in the given direction. */
+    private page(direction: number): void {
+        const tops = this.stops();
+        if (tops.length === 0) return;
+        let nearest = 0;
+        for (let i = 1; i < tops.length; i++) {
+            if (Math.abs((tops[i] ?? 0) - this.target) < Math.abs((tops[nearest] ?? 0) - this.target)) {
+                nearest = i;
+            }
+        }
+        // A gesture that starts mid-section should complete the section it is in
+        // rather than skip the one it has not arrived at yet.
+        const here = tops[nearest] ?? 0;
+        if (direction > 0 && here > this.target + 2) {
+            this.target = here;
+        } else if (direction < 0 && here < this.target - 2) {
+            this.target = here;
+        } else {
+            const next = Math.max(0, Math.min(tops.length - 1, nearest + direction));
+            this.target = tops[next] ?? this.target;
+        }
+        this.paging = true;
+        this.pagingSince = performance.now();
     }
 
     private measure(): void {
@@ -124,6 +187,11 @@ export class SmoothScroll {
         this.current = lerpSmooth(this.current, this.target, HALF_LIFE, deltaSeconds);
         if (Math.abs(this.current - this.target) < SETTLE_EPSILON) {
             this.current = this.target;
+            // Released on arrival, not on a timer, so the next gesture always
+            // begins from a section rather than from halfway between two.
+            if (this.paging && performance.now() - this.pagingSince > PAGE_MIN_MS) {
+                this.paging = false;
+            }
         }
         if (Math.abs(this.current - window.scrollY) > 0.05) {
             this.selfScrolling = true;

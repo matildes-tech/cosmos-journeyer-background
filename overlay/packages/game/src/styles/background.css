@@ -1292,3 +1292,33 @@ body.no-scene #endcard {
     overflow: visible;
     padding-top: 4rem;
 }
+
+
+/*  ---------------------------------------------------------------------------
+    One gesture, one section.
+
+    On a pointer this is done in script, because the wheel is captured there and
+    eased into a glide — see SmoothScroll. A finger scrolls the document itself,
+    so there it is the browser's own snapping, and `scroll-snap-stop: always`
+    is what stops a hard flick from skipping past a section.
+
+    The sentinel at the end carries the last snap point: a mandatory snap with
+    nothing to land on past the final section cannot reach the closing panel.  */
+@media (pointer: coarse) {
+    html {
+        scroll-snap-type: y mandatory;
+    }
+
+    .panel {
+        scroll-snap-align: start;
+        scroll-snap-stop: always;
+    }
+
+    #snap-end {
+        display: block;
+        height: 1px;
+        scroll-snap-align: end;
+    }
+}
+
+#snap-end { height: 0; }
