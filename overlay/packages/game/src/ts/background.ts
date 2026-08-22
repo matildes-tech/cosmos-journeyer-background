@@ -147,7 +147,17 @@ engine.useReverseDepthBuffer = true;
  * essentially all of the visible aliasing, while 3x costs more than twice again
  * for a difference nobody can see at arm's length.
  */
-const RENDER_SCALE_CAP = 2;
+const RENDER_SCALE_CAP = (() => {
+    const coarse =
+        typeof window !== "undefined" &&
+        typeof window.matchMedia === "function" &&
+        window.matchMedia("(pointer: coarse)").matches;
+    // Measured on a phone: 1x is 60fps but visibly soft, 1.5x is still 60fps,
+    // 2x drops to about 38. Almost all the visible aliasing goes between 1x and
+    // 1.5x, so the last half-step is the one worth giving up — it costs a third
+    // of the frame rate for a difference you have to look for.
+    return coarse ? 1.5 : 2;
+})();
 
 const sizeCanvasLikeTheGame = (): void => {
     const ratio = Math.min(window.devicePixelRatio || 1, RENDER_SCALE_CAP);
