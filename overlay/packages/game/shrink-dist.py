@@ -27,6 +27,7 @@ KEEP = (
     "jupiter", "saturn", "neptune", "uranus", "mercury", "venus", "earth", "mars", "moon",
     "ring", "milkyway", "star", "sun", "flare",
     "perlin",  # procedural noise: detail everywhere depends on it
+    "nebula",  # the photographed cloud is a subject, not a material
 )
 
 saved = 0

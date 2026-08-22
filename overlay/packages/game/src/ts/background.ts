@@ -6,7 +6,7 @@
 import "@styles/background.css";
 
 import { Engine } from "@babylonjs/core/Engines/engine";
-import { Color3 } from "@babylonjs/core/Maths/math.color";
+import { Color3, Color4 } from "@babylonjs/core/Maths/math.color";
 import { Matrix, Vector3 } from "@babylonjs/core/Maths/math.vector";
 
 import { LoadingProgressMonitor } from "@/frontend/assets/loadingProgressMonitor";
@@ -65,6 +65,11 @@ const DEFAULT_HEADING = 0;
         proto["requestPointerLock"] = () => undefined;
     }
 })();
+
+import { DynamicTexture } from "@babylonjs/core/Materials/Textures/dynamicTexture";
+import { Layer } from "@babylonjs/core/Layers/layer";
+
+import nebulaImage from "@assets/background/nebula-rosette.jpg";
 
 const params = new URLSearchParams(window.location.search);
 
@@ -256,6 +261,64 @@ const SKY_YAW = (95 * Math.PI) / 180;
 const SKY_PITCH = (22 * Math.PI) / 180;
 
 const starSystemForSky = starSystemView.getStarSystem();
+
+/**
+ * The backdrop: a still image behind the whole scene.
+ *
+ * The game's own sky is a cube map wrapped around the camera, which is the right
+ * shape for a starfield and the wrong one for a photograph of a single object —
+ * a flat image on a sphere smears across the whole sky and pinches at the poles.
+ * Drawn as a background layer instead, it fills the frame undistorted with every
+ * moving thing in front of it.
+ *
+ * The cube map itself is only hidden, not removed: it is also the scene's
+ * environment texture, and the ship's finish is made of what it reflects.
+ */
+starSystemForSky.starFieldBox.mesh.setEnabled(false);
+
+/**
+ * The backdrop: the image drawn into a texture the size of the viewport.
+ *
+ * A background layer stretches its texture to fill the frame, and reproducing
+ * `contain` through its scale and offset went wrong three times — a stretched
+ * column, an overflowing one, and a visible rectangle where the clamped edge
+ * showed. Rather than keep guessing at those semantics, the image is composited
+ * onto a canvas of exactly the viewport's shape and handed over whole. Then the
+ * layer's default full-frame stretch is precisely right, because the texture is
+ * already the right shape.
+ */
+const backdropTexture = new DynamicTexture(
+    "backdrop",
+    { width: Math.min(2048, engine.getRenderWidth()), height: Math.min(2048, engine.getRenderHeight()) },
+    scene,
+    false,
+);
+backdropTexture.hasAlpha = false;
+
+const backdropImage = new Image();
+const paintBackdrop = (): void => {
+    if (!backdropImage.complete || backdropImage.naturalWidth === 0) return;
+    const size = backdropTexture.getSize();
+    const context = backdropTexture.getContext() as unknown as CanvasRenderingContext2D;
+    context.fillStyle = "#000";
+    context.fillRect(0, 0, size.width, size.height);
+    // Contain: the whole nebula visible at any aspect, and because it sits on
+    // black the space around it is simply more space.
+    const fit = Math.min(size.width / backdropImage.naturalWidth, size.height / backdropImage.naturalHeight);
+    const w = backdropImage.naturalWidth * fit;
+    const h = backdropImage.naturalHeight * fit;
+    context.drawImage(backdropImage, (size.width - w) / 2, (size.height - h) / 2, w, h);
+    backdropTexture.update();
+};
+backdropImage.onload = paintBackdrop;
+backdropImage.src = nebulaImage;
+
+const backdrop = new Layer("backdrop", null, scene, true);
+backdrop.texture = backdropTexture;
+// Held back: at full strength it is the brightest thing on screen, and every
+// planet — backlit, since the flight runs sunward — becomes a black dot punched
+// out of it rather than a body with a lit limb.
+backdrop.color = new Color4(0.5, 0.5, 0.54, 1);
 
 /**
  * The companion, turned right down.
