@@ -63,6 +63,27 @@ const MAX_TURN_RATE = (11 * Math.PI) / 180;
 const TURN_HALF_LIFE = 0.095;
 
 /**
+ * The idle float.
+ *
+ * A camera pinned exactly to a curve reads as a camera on rails, because nothing
+ * real holds a heading that precisely — and "on rails" is most of what reads as
+ * unnatural here. A fifth of a degree of wander, on three periods that do not
+ * divide into one another, is what the eye takes for a vehicle rather than a
+ * rig.
+ *
+ * The numbers are deliberately far below anything that matters for comfort: at
+ * their fastest these contribute about 0.2 degrees per second against a ceiling
+ * of eleven. It is not motion you can see happening; it is the absence of the
+ * stillness that gave the flight away.
+ */
+const FLOAT_YAW = 0.0035;
+const FLOAT_PITCH = 0.0028;
+const FLOAT_ROLL = 0.006;
+const FLOAT_YAW_RATE = 0.83;
+const FLOAT_PITCH_RATE = 1.13;
+const FLOAT_ROLL_RATE = 0.61;
+
+/**
  * Drives Cosmos Journeyer's own camera transform from scroll position.
  *
  * The split matters: scroll events only ever write a number. All movement and
@@ -81,6 +102,7 @@ export class CameraDriver {
     private progress = 0;
 
     /** Set once, so the first frame starts composed instead of gliding in from beat 0. */
+    private floatClock = 0;
     private snapped = false;
 
     /** Motion of the camera this frame, for whatever wants to visualise speed. */
@@ -134,6 +156,7 @@ export class CameraDriver {
      * the previous one's.
      */
     update(deltaSeconds: number): void {
+        this.floatClock += deltaSeconds;
         // Captured before the damping runs — reading it afterwards compares the
         // new progress against itself and the rate is always zero.
         const previousProgress = this.progress;
@@ -157,8 +180,15 @@ export class CameraDriver {
         const aim = this.limitTurn(state.rotation, deltaSeconds);
 
         // Post-multiplying applies the pointer offset in the camera's own frame,
-        // so it reads as glancing around rather than orbiting the subject.
-        setRotationQuaternion(this.transform, aim.multiply(this.pointer.getOffset()));
+        // so it reads as glancing around rather than orbiting the subject. The
+        // float goes on last, for the same reason: it is the vehicle moving
+        // under the shot, not the shot being re-aimed.
+        const float = Quaternion.RotationYawPitchRoll(
+            FLOAT_YAW * Math.sin(this.floatClock * FLOAT_YAW_RATE),
+            FLOAT_PITCH * Math.sin(this.floatClock * FLOAT_PITCH_RATE),
+            FLOAT_ROLL * Math.sin(this.floatClock * FLOAT_ROLL_RATE),
+        );
+        setRotationQuaternion(this.transform, aim.multiply(this.pointer.getOffset()).multiply(float));
 
         this.transform.computeWorldMatrix(true);
 

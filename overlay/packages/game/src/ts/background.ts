@@ -163,7 +163,8 @@ const COARSE_POINTER =
  * standing in from the slow end. Every device now starts at 2x and the number is
  * settled by measurement instead — see `watchRenderQuality`.
  */
-let renderScaleCap = 2;
+const SCALE_OVERRIDE = Number(new URLSearchParams(window.location.search).get("scale"));
+let renderScaleCap = Number.isFinite(SCALE_OVERRIDE) && SCALE_OVERRIDE > 0 ? SCALE_OVERRIDE : 2;
 
 const applyRenderScale = (): void => {
     const ratio = Math.min(window.devicePixelRatio || 1, renderScaleCap);
@@ -188,6 +189,7 @@ applyRenderScale();
  */
 const QUALITY_SAMPLE_SECONDS = 2.5;
 const QUALITY_FLOOR_FPS = 45;
+const QUALITY_LADDER = [1.5, 1.25];
 let qualitySettled = false;
 let qualitySampleStart = 0;
 let qualitySampleFrames = 0;
@@ -202,10 +204,23 @@ const watchRenderQuality = (): void => {
     const elapsed = (now - qualitySampleStart) / 1000;
     if (elapsed < QUALITY_SAMPLE_SECONDS) return;
 
-    qualitySettled = true;
     const rate = qualitySampleFrames / elapsed;
-    if (rate >= QUALITY_FLOOR_FPS) return;
-    renderScaleCap = 1.5;
+    qualitySampleStart = 0;
+    qualitySampleFrames = 0;
+    if (rate >= QUALITY_FLOOR_FPS || SCALE_OVERRIDE > 0) {
+        qualitySettled = true;
+        return;
+    }
+    // A ladder, not a single step. Stopping at 1.5 leaves a high-density display
+    // still drawing half again as many pixels as it can carry, and the reason to
+    // give up resolution is smoothness — so keep giving it up until the frame
+    // rate is actually there, then stop.
+    const next = QUALITY_LADDER.find((step) => step < renderScaleCap);
+    if (next === undefined) {
+        qualitySettled = true;
+        return;
+    }
+    renderScaleCap = next;
     applyRenderScale();
     resizeBackdrop();
 };
@@ -427,12 +442,44 @@ backdrop.color = new Color4(0.5, 0.5, 0.54, 1);
  * Sliding it means the edges have to be off-screen to begin with, which is what
  * the base zoom is for: enough to cover the largest shift, and no more.
  */
-const BACKDROP_APPROACH = COARSE_POINTER ? 0.24 : 0.16;
-const BACKDROP_BASE_ZOOM = COARSE_POINTER ? 1.14 : 1.12;
-/** Fraction of the true angular shift. Below one it reads as depth. */
-const PARALLAX_GAIN = 0.7;
-const DRIFT_X = 0.018;
-const DRIFT_Y = 0.012;
+const BACKDROP_APPROACH = COARSE_POINTER ? 0.20 : 0.14;
+
+/**
+ * Enough zoom that the photograph can be moved without showing its edges.
+ *
+ * This is the cost of the whole thing: everything below shifts the image inside
+ * the frame, and whatever it shifts by has to already be outside. The base is
+ * set to just cover the largest combined shift and no more.
+ */
+const BACKDROP_BASE_ZOOM = COARSE_POINTER ? 1.32 : 1.30;
+
+/**
+ * Fraction of the true angular shift, for the part that follows the view.
+ *
+ * The physical answer is one — a thing at infinity slides exactly with your
+ * head. But the camera only swings about seven degrees across the whole flight,
+ * so the physical answer is also nearly no movement at all, and it is not what
+ * anyone watching is asking for. Half, plus a drift that owes nothing to the
+ * flight, is what reads as a nebula the ship is travelling past.
+ */
+const PARALLAX_GAIN = 0.4;
+
+/**
+ * The drift.
+ *
+ * Measured before this: the old drift moved the image about one pixel a second,
+ * which is not movement, it is a rounding error. These amplitudes and periods
+ * put it around ten pixels a second at its quickest — slow enough to never pull
+ * the eye off the copy, fast enough that a few seconds of looking is enough to
+ * see it. The two axes and the breath run at periods that do not divide into one
+ * another, so the path never visibly repeats.
+ */
+const DRIFT_X = 0.078;
+const DRIFT_Y = 0.058;
+const DRIFT_X_RATE = 0.15;
+const DRIFT_Y_RATE = 0.19;
+const BREATHE = 0.035;
+const BREATHE_RATE = 0.1;
 
 let parallaxYaw = 0;
 let parallaxPitch = 0;
@@ -448,13 +495,15 @@ const driveBackdrop = (
     parallaxYaw += yawRate * deltaSeconds;
     parallaxPitch += pitchRate * deltaSeconds;
 
-    const zoom = BACKDROP_BASE_ZOOM + BACKDROP_APPROACH * progress;
+    const breathe = BREATHE * Math.sin(backdropClock * BREATHE_RATE);
+    const zoom = BACKDROP_BASE_ZOOM + BACKDROP_APPROACH * progress + breathe;
+
     // Horizontal field, not vertical: the layer's offset is in screen widths.
     const fovH = 2 * Math.atan(Math.tan(camera.fov / 2) * engine.getAspectRatio(camera));
     const slideX = (-parallaxYaw / fovH) * PARALLAX_GAIN;
     const slideY = (parallaxPitch / camera.fov) * PARALLAX_GAIN;
-    const driftX = DRIFT_X * Math.sin(backdropClock * 0.05);
-    const driftY = DRIFT_Y * Math.sin(backdropClock * 0.031);
+    const driftX = DRIFT_X * Math.sin(backdropClock * DRIFT_X_RATE);
+    const driftY = DRIFT_Y * Math.sin(backdropClock * DRIFT_Y_RATE);
 
     backdrop.scale.x = zoom;
     backdrop.scale.y = zoom;
@@ -825,6 +874,7 @@ declare global {
             shipProfile: () => string;
             shipOffset: () => number;
             cameraHeading: () => number;
+            backdrop: () => string;
             recordShip: (ms: number) => Promise<string>;
         };
     }
@@ -850,6 +900,8 @@ window.__bg = {
     // Where the ship actually sits across the frame right now, for verifying the glide.
     shipOffset: () => ship?.frameOffset() ?? 0,
     cameraHeading: () => layout.headingOffset(driver.getProgress()),
+    backdrop: () =>
+        `${backdrop.offset.x.toFixed(4)} ${backdrop.offset.y.toFixed(4)} ${backdrop.scale.x.toFixed(4)}`,
     // Samples the ship's position once per rendered frame. Sampling it from
     // outside over the debugging protocol gives uneven intervals, which makes
     // smooth motion look jerky and jerky motion look smooth — the numbers have

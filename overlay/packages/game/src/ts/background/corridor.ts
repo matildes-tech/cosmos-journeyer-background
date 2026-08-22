@@ -152,7 +152,7 @@ const RISE_FACTOR = 0.8;
  * to re-establish it. What is left is enough to feel the turns without the frame
  * appearing to tumble.
  */
-const BANK_MAX = 0.03;
+const BANK_MAX = 0.05;
 
 /**
  * The widest the nose ever swings off the corridor axis, in radians.
