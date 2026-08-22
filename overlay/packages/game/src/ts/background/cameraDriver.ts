@@ -26,7 +26,13 @@ const COARSE =
     typeof window.matchMedia === "function" &&
     window.matchMedia("(pointer: coarse)").matches;
 
-const HALF_LIFE = COARSE ? 0.035 : 0.085;
+// Measured, after a single wheel flick: the page settled by about 500ms but the
+// camera was still moving at 1000ms. That trailing half-second is the whole of
+// the "unresponsive" complaint — the scroll is eased once by SmoothScroll and
+// then eased again here, and two exponentials in series read as lag rather than
+// as calm. The glide upstream is the one doing the smoothing; this only has to
+// take the edge off the handover.
+const HALF_LIFE = COARSE ? 0.03 : 0.038;
 
 /**
  * Ceiling on how fast the camera may turn, in radians per second.
@@ -51,7 +57,10 @@ const MAX_TURN_RATE = (11 * Math.PI) / 180;
  * limited and unlimited the instant demand dropped, which reads as a flinch at
  * the end of every fast turn.
  */
-const TURN_HALF_LIFE = 0.17;
+// The ceiling on turn rate is what keeps this comfortable to watch; the easing
+// below it only exists so the rate does not step. Slower than it needs to be, it
+// just adds latency on top of the ceiling.
+const TURN_HALF_LIFE = 0.095;
 
 /**
  * Drives Cosmos Journeyer's own camera transform from scroll position.

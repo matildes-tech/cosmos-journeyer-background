@@ -362,8 +362,15 @@ const paintBackdrop = (): void => {
     if (!backdropImage.complete || backdropImage.naturalWidth === 0) return;
     const size = backdropTexture.getSize();
     const context = backdropTexture.getContext() as unknown as CanvasRenderingContext2D;
+    context.filter = "none";
     context.fillStyle = "#000";
     context.fillRect(0, 0, size.width, size.height);
+    // Pulled back at paint time rather than per frame. The layer's colour is a
+    // multiply, which darkens without touching saturation — and it was the
+    // saturation that was loud: a photograph of a nebula is the most saturated
+    // thing anyone will put behind a page, and next to it every lit planet limb
+    // reads as grey.
+    context.filter = "saturate(0.6)";
 
     const byWidth = size.width / backdropImage.naturalWidth;
     const byHeight = size.height / backdropImage.naturalHeight;
@@ -377,6 +384,7 @@ const paintBackdrop = (): void => {
     const w = backdropImage.naturalWidth * fit;
     const h = backdropImage.naturalHeight * fit;
     context.drawImage(backdropImage, (size.width - w) / 2, (size.height - h) / 2, w, h);
+    context.filter = "none";
     backdropTexture.update();
 };
 backdropImage.onload = paintBackdrop;
@@ -403,28 +411,57 @@ backdrop.texture = backdropTexture;
 backdrop.color = new Color4(0.5, 0.5, 0.54, 1);
 
 /**
- * How much the backdrop closes over the whole flight.
+ * How the backdrop moves.
  *
- * A fixed layer is wallpaper: the volumetric clouds grow as the ship flies at
- * them and the photograph does not, so it reads as painted on the inside of the
- * screen. Zooming it with scroll gives it the one cue it was missing.
+ * It was welded to the screen: a full-frame layer whose only motion was a slow
+ * scale with scroll. So when the camera turned, the star field turned and the
+ * photograph did not — which is exactly what makes a backdrop read as painted on
+ * the inside of the screen rather than as somewhere the ship is flying.
  *
- * Uniform, and applied through the layer's scale rather than by repainting —
- * redrawing a viewport-sized canvas and re-uploading it every frame would cost
- * far more than the whole rest of the backdrop.
+ * Three things move it now. The flight closes it in with progress, as before.
+ * The view's own rotation slides it, which is what a thing at infinity does when
+ * you turn your head — that is the cue that was missing. And a very slow drift
+ * keeps it alive when the reader is not scrolling at all, because the ship never
+ * stops flying even when the page is still.
  *
- * Phones get more of it. There is more empty frame to fill in portrait, and the
- * subject starts further from the edges.
+ * Sliding it means the edges have to be off-screen to begin with, which is what
+ * the base zoom is for: enough to cover the largest shift, and no more.
  */
-const BACKDROP_APPROACH = COARSE_POINTER ? 0.28 : 0.18;
-const zoomBackdrop = (progress: number): void => {
-    const zoom = 1 + BACKDROP_APPROACH * progress;
+const BACKDROP_APPROACH = COARSE_POINTER ? 0.24 : 0.16;
+const BACKDROP_BASE_ZOOM = COARSE_POINTER ? 1.14 : 1.12;
+/** Fraction of the true angular shift. Below one it reads as depth. */
+const PARALLAX_GAIN = 0.7;
+const DRIFT_X = 0.018;
+const DRIFT_Y = 0.012;
+
+let parallaxYaw = 0;
+let parallaxPitch = 0;
+let backdropClock = 0;
+
+const driveBackdrop = (
+    progress: number,
+    deltaSeconds: number,
+    yawRate: number,
+    pitchRate: number,
+): void => {
+    backdropClock += deltaSeconds;
+    parallaxYaw += yawRate * deltaSeconds;
+    parallaxPitch += pitchRate * deltaSeconds;
+
+    const zoom = BACKDROP_BASE_ZOOM + BACKDROP_APPROACH * progress;
+    // Horizontal field, not vertical: the layer's offset is in screen widths.
+    const fovH = 2 * Math.atan(Math.tan(camera.fov / 2) * engine.getAspectRatio(camera));
+    const slideX = (-parallaxYaw / fovH) * PARALLAX_GAIN;
+    const slideY = (parallaxPitch / camera.fov) * PARALLAX_GAIN;
+    const driftX = DRIFT_X * Math.sin(backdropClock * 0.05);
+    const driftY = DRIFT_Y * Math.sin(backdropClock * 0.031);
+
     backdrop.scale.x = zoom;
     backdrop.scale.y = zoom;
-    backdrop.offset.x = (1 - zoom) / 2;
-    backdrop.offset.y = (1 - zoom) / 2;
+    backdrop.offset.x = (1 - zoom) / 2 + slideX + driftX;
+    backdrop.offset.y = (1 - zoom) / 2 + slideY + driftY;
 };
-zoomBackdrop(0);
+driveBackdrop(0, 0, 0, 0);
 
 /**
  * The companion, turned right down.
@@ -728,7 +765,7 @@ scene.onBeforeRenderObservable.add(
         }
 
         watchRenderQuality();
-        zoomBackdrop(p);
+        driveBackdrop(p, deltaSeconds, driver.getYawRate(), driver.getPitchRate());
         applyReveal(p);
 
         const sweep = Matrix.RotationYawPitchRoll(SKY_YAW * p, SKY_PITCH * p * (1 - p) * 4, 0);

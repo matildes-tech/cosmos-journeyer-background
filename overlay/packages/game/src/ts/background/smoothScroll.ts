@@ -22,7 +22,7 @@ const COARSE =
  * moves exactly as far as it is dragged — so easing on top of it does not read
  * as softness, it reads as the scene lagging behind the hand.
  */
-const HALF_LIFE = COARSE ? 0.022 : 0.062;
+const HALF_LIFE = COARSE ? 0.022 : 0.05;
 
 /**
  * Wheel delta multiplier.

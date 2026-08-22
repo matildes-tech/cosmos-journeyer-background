@@ -69,10 +69,10 @@ const DESKTOP: QualityProfile = {
     nebulaLimit: 4,
     nebulaStepScale: 1,
     dustInstances: 3200,
-    shipApparentSize: 0.86,
+    shipApparentSize: 1.02,
     shipAhead: 8.5,
-    shipBelow: 0.4,
-    shipSwing: 0.3,
+    shipBelow: 0.33,
+    shipSwing: 0.4,
 };
 
 /**
@@ -93,10 +93,10 @@ const MOBILE: QualityProfile = {
     nebulaLimit: 2,
     nebulaStepScale: 0.55,
     dustInstances: 1100,
-    shipApparentSize: 0.6,
-    shipAhead: 11,
-    shipBelow: 0.28,
-    shipSwing: 0.14,
+    shipApparentSize: 0.78,
+    shipAhead: 9.8,
+    shipBelow: 0.24,
+    shipSwing: 0.2,
 };
 
 /**
