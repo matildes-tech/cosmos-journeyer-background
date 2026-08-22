@@ -425,6 +425,9 @@ backdropTexture.hasAlpha = false;
  * of it is asking roughly 850 source pixels to cover a 645-pixel-wide render, so
  * the texture is still being downsampled, not enlarged.
  */
+/** How much of cover the photograph takes on a phone. Below one it is faded out. */
+const PORTRAIT_FILL = 0.74;
+
 const backdropImage = new Image();
 const paintBackdrop = (): void => {
     if (!backdropImage.complete || backdropImage.naturalWidth === 0) return;
@@ -447,12 +450,40 @@ const paintBackdrop = (): void => {
     // Going under cover would pull the image away from the frame edges, and with
     // a starfield across the whole image those gaps read as bars rather than as
     // space.
-    const fit = portrait ? Math.max(byWidth, byHeight) : Math.min(byWidth, byHeight);
+    // Portrait covers, then comes back in.
+    //
+    // Cover is the smallest scale that leaves no bars, and on a phone it is a
+    // 1.79 photograph in a frame half as wide as it is tall — a crop of nearly
+    // four to one, which is why the nebula filled the screen. Drawing under
+    // cover makes it smaller but brings its own top and bottom edges into the
+    // frame, and an edge across a starfield reads as a bar. So it is drawn
+    // smaller and then faded out into black before those edges are reached:
+    // the photograph ends by dissolving into space rather than by stopping.
+    const cover = Math.max(byWidth, byHeight);
+    const fit = portrait ? cover * PORTRAIT_FILL : Math.min(byWidth, byHeight);
 
     const w = backdropImage.naturalWidth * fit;
     const h = backdropImage.naturalHeight * fit;
     context.drawImage(backdropImage, (size.width - w) / 2, (size.height - h) / 2, w, h);
     context.filter = "none";
+
+    if (portrait) {
+        // The band has to reach past where the image ends, which is half the
+        // shortfall in from each edge.
+        const edge = (size.height - h) / 2;
+        const band = Math.max(edge * 2.1, size.height * 0.16);
+        const top = context.createLinearGradient(0, 0, 0, band);
+        top.addColorStop(0, "rgba(0, 0, 0, 1)");
+        top.addColorStop(1, "rgba(0, 0, 0, 0)");
+        context.fillStyle = top;
+        context.fillRect(0, 0, size.width, band);
+        const bottom = context.createLinearGradient(0, size.height, 0, size.height - band);
+        bottom.addColorStop(0, "rgba(0, 0, 0, 1)");
+        bottom.addColorStop(1, "rgba(0, 0, 0, 0)");
+        context.fillStyle = bottom;
+        context.fillRect(0, size.height - band, size.width, band);
+    }
+
     backdropTexture.update();
 };
 backdropImage.onload = paintBackdrop;
@@ -541,7 +572,7 @@ window.addEventListener("resize", fitBackdropPlane);
  * Sliding it means the edges have to be off-screen to begin with, which is what
  * the base zoom is for: enough to cover the largest shift, and no more.
  */
-const BACKDROP_APPROACH = COARSE_POINTER ? 0.20 : 0.14;
+const BACKDROP_APPROACH = COARSE_POINTER ? 0.15 : 0.14;
 
 /**
  * Enough zoom that the photograph can be moved without showing its edges.
@@ -550,7 +581,10 @@ const BACKDROP_APPROACH = COARSE_POINTER ? 0.20 : 0.14;
  * the frame, and whatever it shifts by has to already be outside. The base is
  * set to just cover the largest combined shift and no more.
  */
-const BACKDROP_BASE_ZOOM = COARSE_POINTER ? 1.32 : 1.30;
+// Smaller on a phone. The zoom is also the headroom the pan moves inside, so a
+// smaller backdrop necessarily drifts less — the clamp below keeps it inside the
+// image either way.
+const BACKDROP_BASE_ZOOM = COARSE_POINTER ? 1.17 : 1.30;
 
 /**
  * Fraction of the true angular shift, for the part that follows the view.
@@ -573,8 +607,8 @@ const PARALLAX_GAIN = 0.4;
  * see it. The two axes and the breath run at periods that do not divide into one
  * another, so the path never visibly repeats.
  */
-const DRIFT_X = 0.078;
-const DRIFT_Y = 0.058;
+const DRIFT_X = COARSE_POINTER ? 0.04 : 0.078;
+const DRIFT_Y = COARSE_POINTER ? 0.03 : 0.058;
 const DRIFT_X_RATE = 0.15;
 const DRIFT_Y_RATE = 0.19;
 const BREATHE = 0.035;
