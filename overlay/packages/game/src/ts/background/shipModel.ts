@@ -202,15 +202,23 @@ function modelOrientation(): Quaternion {
  * so the planets keep their backlighting exactly as it was.
  */
 /**
- * A reflection map that is black apart from stars.
+ * What the hull reflects.
  *
- * Built rather than loaded: it is a few hundred dots on a 1024x512 canvas, which
- * is smaller than any file that could be shipped for it, and being procedural it
- * can be seeded so the same sky comes back every run.
+ * Two requirements that pull against each other: it has to look like polished
+ * chrome, and it must not reflect the black of space. Reflecting the scene's own
+ * environment does the second by doing neither — space is almost entirely black,
+ * so the shinier the hull was made the darker it became.
  *
- * Fixed equirectangular, so the map is anchored to the world rather than to the
- * viewer: the glints then travel across the hull as the ship turns, which is the
- * whole point of putting them there.
+ * So the hull is given its own sky instead: black, with stars, and with a few
+ * broad soft sources in it of the kind a studio would put around a car. Chrome
+ * needs something bright to be a mirror of; those sources are what become the
+ * long highlights down the fuselage and along the wing edges, and the black
+ * between them is what makes them read as chrome rather than as white paint.
+ *
+ * Built rather than loaded — it is a few gradients and a thousand dots, smaller
+ * than any file that could be shipped for it — and seeded, so it is the same sky
+ * every run. Fixed equirectangular, so it is anchored to the world and the
+ * highlights travel across the hull as the ship turns.
  */
 let starMap: DynamicTexture | null = null;
 const starReflection = (scene: Scene): DynamicTexture => {
@@ -221,6 +229,38 @@ const starReflection = (scene: Scene): DynamicTexture => {
     const context = texture.getContext() as unknown as CanvasRenderingContext2D;
     context.fillStyle = "#000";
     context.fillRect(0, 0, width, height);
+
+    /** A soft source: centre, radii in pixels, and peak brightness. */
+    const softbox = (
+        cx: number,
+        cy: number,
+        rx: number,
+        ry: number,
+        peak: number,
+    ): void => {
+        context.save();
+        context.translate(cx, cy);
+        context.scale(1, ry / rx);
+        const gradient = context.createRadialGradient(0, 0, 0, 0, 0, rx);
+        gradient.addColorStop(0, `rgba(255, 255, 255, ${peak})`);
+        gradient.addColorStop(0.45, `rgba(233, 240, 255, ${(peak * 0.42).toFixed(3)})`);
+        gradient.addColorStop(1, "rgba(0, 0, 0, 0)");
+        context.fillStyle = gradient;
+        context.beginPath();
+        context.arc(0, 0, rx, 0, Math.PI * 2);
+        context.fill();
+        context.restore();
+    };
+
+    // Overhead key, a long strip: this is the highlight that runs the length of
+    // the fuselage.
+    softbox(300, 118, 420, 86, 1);
+    // A second, further round, so turning the ship finds a new highlight rather
+    // than losing the only one.
+    softbox(768, 170, 300, 74, 0.95);
+    // Low and broad, to put light under the wing edges.
+    softbox(540, 398, 460, 130, 0.62);
+    softbox(58, 330, 250, 96, 0.55);
 
     // A fixed sequence, so the sky is the same every load.
     let seed = 20260822;
@@ -244,10 +284,7 @@ const starReflection = (scene: Scene): DynamicTexture => {
     return texture;
 };
 
-// These were all tuned while Babylon was silently dropping most of them for want
-// of light slots, so each was carrying the others' work. With all three actually
-// reaching the hull they are a fraction of what they were.
-const KEY_INTENSITY = 1.05;
+const KEY_INTENSITY = 0.85;
 // Broad and soft, and doing most of the work now.
 //
 // A hull this far from the star has almost nothing lighting it: the sky is black
@@ -255,7 +292,7 @@ const KEY_INTENSITY = 1.05;
 // single key leaves everything not facing it in shadow. Silver is a bright,
 // evenly lit surface with hard highlights on top — not a dark one with a
 // highlight, which is what this was.
-const FILL_INTENSITY = 0.16;
+const FILL_INTENSITY = 0.08;
 
 /**
  * Mostly non-metal, deliberately.
@@ -284,8 +321,8 @@ const FILL_INTENSITY = 0.16;
 // it darker, which is the opposite of silver. The silver comes from a bright,
 // slightly cool base under a polished coat; the metalness is only there for the
 // sheen, and the star map supplies the glints.
-const METALLIC = 0.34;
-const ROUGHNESS = 0.032;
+const METALLIC = 0.92;
+const ROUGHNESS = 0.042;
 
 /**
  * How much brighter the hull's reflections are than the sky that supplies them.
@@ -299,7 +336,10 @@ const ROUGHNESS = 0.032;
 // How much of the surrounding scene appears in the hull. Held right down —
 // this is the setting that decides whether it looks lacquered or looks like a
 // mirror ball with stars in it.
-const ENVIRONMENT_INTENSITY = 1.0;
+// Above one on purpose. A mirror shows the brightness of what is around it, and
+// what is around this is mostly empty sky — so the sources have to be brighter
+// than life for the hull to read as chrome rather than as grey.
+const ENVIRONMENT_INTENSITY = 2.9;
 
 /** Gentle idle motion so it never looks welded to the lens. */
 const DRIFT_PITCH = 0.014;
@@ -422,7 +462,7 @@ export class ShipModel {
                 // a dark one and relies on a mirror finish to look bright; with
                 // the reflections turned down so the universe stays out of the
                 // paintwork, an unset albedo simply leaves a black silhouette.
-                material.albedoColor?.set(0.8, 0.83, 0.9);
+                material.albedoColor?.set(0.92, 0.94, 0.98);
                 material.metallic = METALLIC;
                 material.roughness = ROUGHNESS;
                 material.environmentIntensity = ENVIRONMENT_INTENSITY;

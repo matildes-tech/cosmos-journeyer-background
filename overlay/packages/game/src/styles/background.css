@@ -1228,3 +1228,67 @@ body.reveal-timed .panel-inner > [data-reveal="after"] {
         color: rgba(255, 255, 255, 0.66);
     }
 }
+
+
+/*  ---------------------------------------------------------------------------
+    The page without the scene.
+
+    A device that cannot start the flight was left staring at a loader for ever:
+    no copy, no navigation, nothing to scroll. Whatever stopped the scene, the
+    document underneath is a perfectly good page, so it is shown as one — the
+    photograph behind it as a plain background, the copy simply present rather
+    than revealed, and the closing panel at the end where a footer belongs.  */
+#skyfallback {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    background-color: #06070b;
+    background-image: url("../asset/background/nebula-rosette.jpg");
+    background-repeat: no-repeat;
+    background-position: 50% 50%;
+    background-size: cover;
+    filter: brightness(0.45) saturate(0.6);
+    pointer-events: none;
+}
+
+#fallback-note {
+    display: none;
+    position: fixed;
+    left: 1rem;
+    bottom: 0.7rem;
+    z-index: 10;
+    margin: 0;
+    max-width: 30ch;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 0.58rem;
+    line-height: 1.5;
+    white-space: pre-line;
+    color: rgba(255, 255, 255, 0.28);
+    pointer-events: none;
+}
+
+body.no-scene #skyfallback,
+body.no-scene #fallback-note { display: block; }
+
+body.no-scene #universe,
+body.no-scene #loader,
+body.no-scene #hud { display: none; }
+
+/*  The reveal is driven from the flight, and there is no flight — so the copy is
+    simply there.  */
+body.no-scene .panel-inner > * {
+    opacity: 1;
+    transform: none;
+    transition: none;
+}
+
+/*  The closing panel is revealed by the end of the flight; with no flight it
+    becomes what it looks like, which is a footer at the end of the document.  */
+body.no-scene #endcard {
+    position: static;
+    opacity: 1;
+    pointer-events: auto;
+    overflow: visible;
+    padding-top: 4rem;
+}
