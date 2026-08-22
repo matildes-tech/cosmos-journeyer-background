@@ -580,6 +580,7 @@ for (const flare of starSystemView.postProcessManager.lensFlares) {
  * slide changing; a stagger reads as something being said.
  */
 const panels = Array.from(document.querySelectorAll<HTMLElement>(".panel"));
+if (COARSE_POINTER) document.body.classList.add("reveal-timed");
 /**
  * Vertical travel, in pixels.
  *
@@ -612,6 +613,21 @@ const revealAt = (local: number, delay: number): number => {
     return smoothstep(shifted / 0.25) * (1 - smoothstep((shifted - 0.8) / 0.2));
 };
 
+/*  Touch reveals by state, not by scrub.
+
+    Measured on the reference with the page held perfectly still: its copy keeps
+    moving — 1.000, 0.881, 0.450, 0.036, 0 over about half a second, transform
+    sliding 0 to -8 the whole way. That is a transition on its own clock, not a
+    value read off the scroll position.
+
+    On a desktop the difference does not show, because the wheel is eased into a
+    glide and the scrubbed value inherits that easing. Under a finger there is no
+    glide: a scrubbed reveal tracks the finger exactly, so dragging slowly scrubs
+    the text in and out like a slider instead of playing an animation. Touch gets
+    a state and lets CSS time it; the pointer keeps the scrub.  */
+const REVEAL_IN_AT = 0.08;
+const REVEAL_OUT_AT = 0.85;
+
 const applyReveal = (progress: number): void => {
     const span = 1 / Math.max(1, panels.length);
     const introT = introStart === 0 ? 0 : (performance.now() - introStart) / 1000;
@@ -628,6 +644,29 @@ const applyReveal = (progress: number): void => {
         for (const node of Array.from(panel.children[0]?.children ?? [])) {
             const element = node as HTMLElement;
             const isHeadline = element.classList.contains("headline");
+
+            if (COARSE_POINTER) {
+                // The hero is the one panel with no scroll behind it: it is in as
+                // soon as the loader lets go, and only its exit follows the flight.
+                const state = isHero
+                    ? introStart === 0
+                        ? "before"
+                        : local > REVEAL_OUT_AT
+                          ? "after"
+                          : "in"
+                    : local < REVEAL_IN_AT
+                      ? "before"
+                      : local > REVEAL_OUT_AT
+                        ? "after"
+                        : "in";
+                // Only touched when it actually changes: rewriting classList on
+                // every element every frame is work the compositor has to answer.
+                if (element.dataset["reveal"] !== state) {
+                    element.dataset["reveal"] = state;
+                }
+                continue;
+            }
+
             const delay = isHeadline ? 0 : STAGGER;
             const shifted = Math.min(1, Math.max(0, local - delay));
 
@@ -655,8 +694,7 @@ const applyReveal = (progress: number): void => {
             element.style.transform = `translateY(${offset.toFixed(2)}px)`;
         }
     });
-};
-applyReveal(0);
+};applyReveal(0);
 
 scene.onBeforeRenderObservable.add(
     () => {

@@ -1146,3 +1146,85 @@ body {
     a page that is still loading — so it starts hidden and the script takes it
     from there.  */
 .panel-inner > * { opacity: 0; }
+
+
+/*  ---------------------------------------------------------------------------
+    The timed reveal, used on touch.
+
+    Measured off the reference with the page held still: the copy keeps moving
+    for about half a second after the scroll stops, easing out and sliding from
+    0 to -8 as it goes. So this is a transition on its own clock, and the script
+    only sets which of three states an element is in — see `applyReveal`.
+
+    It replaces the scrubbed reveal rather than joining it: under a finger there
+    is no glide to inherit, so a scrubbed value tracks the finger and the copy
+    scrubs in and out like a slider instead of playing.  */
+body.reveal-timed .panel-inner > * {
+    transition:
+        opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+        transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/*  The supporting copy follows the headline in, the way it does on the scrubbed
+    path — there it is a phase offset, here it is a delay.  */
+body.reveal-timed .panel-inner > *:not(.headline) {
+    transition-delay: 0.08s;
+}
+
+body.reveal-timed .panel-inner > [data-reveal="before"] {
+    opacity: 0;
+    transform: translateY(8px);
+}
+
+body.reveal-timed .panel-inner > [data-reveal="in"] {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+body.reveal-timed .panel-inner > [data-reveal="after"] {
+    opacity: 0;
+    transform: translateY(-8px);
+}
+
+
+/*  The licence line is an obligation the page has to carry, not something it is
+    trying to say. Small and quiet, but still legible and still a live link.  */
+#endcard-legal {
+    max-width: 52ch;
+    font-size: 0.56rem;
+    line-height: 1.55;
+    color: rgba(255, 255, 255, 0.24);
+}
+
+#endcard-legal a { color: rgba(255, 255, 255, 0.34); }
+
+
+/*  ---------------------------------------------------------------------------
+    The quiet section, on a phone.
+
+    Every telemetry block is hidden below 860px: pinned to the bottom-right
+    corner with `white-space: nowrap`, those long uppercase strings run off the
+    side of a phone. But the quiet section has nothing else in it, so hiding the
+    block left one whole section of the page scrolling past blank. It stays
+    hidden where it is decoration beside a headline, and comes back where it is
+    the copy — moved to the left margin and allowed to wrap.  */
+@media (max-width: 860px) {
+    .layout-quiet .telemetry {
+        display: flex;
+        right: auto;
+        left: 1.5rem;
+        bottom: 7rem;
+        max-width: calc(100% - 3rem);
+        align-items: flex-start;
+        text-align: left;
+        gap: 0.85rem;
+    }
+
+    .layout-quiet .telemetry span {
+        white-space: normal;
+        font-size: 0.82rem;
+        line-height: 1.5;
+        letter-spacing: 0.12em;
+        color: rgba(255, 255, 255, 0.66);
+    }
+}
