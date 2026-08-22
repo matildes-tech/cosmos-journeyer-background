@@ -82,11 +82,16 @@ export default defineConfig(({ mode }) => {
             target: "es2025",
             rollupOptions: {
                 input: {
-                    // Only the background page ships. Cosmos Journeyer's own game
-                    // and playground entry points pull in the whole title —
-                    // menus, star map, tutorials, audio — none of which this page
-                    // uses, and all of which would be published alongside it.
+                    // Only our own pages ship. Cosmos Journeyer's own game and
+                    // playground entry points pull in the whole title — menus,
+                    // star map, tutorials, audio — none of which these pages use,
+                    // and all of which would be published alongside them.
                     background: path.resolve(__dirname, "background.html"),
+                    technology: path.resolve(__dirname, "technology.html"),
+                    capabilities: path.resolve(__dirname, "capabilities.html"),
+                    solutions: path.resolve(__dirname, "solutions.html"),
+                    network: path.resolve(__dirname, "network.html"),
+                    scale: path.resolve(__dirname, "scale.html"),
                 },
                 output: {
                     banner: licenseBanner,

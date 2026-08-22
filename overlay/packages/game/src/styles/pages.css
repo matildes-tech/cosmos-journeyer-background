@@ -1,0 +1,220 @@
+/*  ---------------------------------------------------------------------------
+    The subpages.
+
+    Type on near-black, and nothing behind it. The flight is the homepage's
+    signature; repeating it here would make every page cost the whole engine and
+    would compete with the one thing these pages are for, which is reading.
+
+    Everything shared — the bar, the sheet, the closing panel — comes from
+    background.css, so there is one definition of each and no drift.  */
+
+body.page {
+    background: #06070b;
+    color: #eef1f8;
+    min-height: 100svh;
+}
+
+/*  The bar floats, so the page has to start below it rather than under it.  */
+.page-main {
+    width: min(72rem, calc(100% - 3rem));
+    margin: 0 auto;
+    padding: 9.5rem 0 6rem;
+}
+
+.page-head {
+    max-width: 48rem;
+    padding-bottom: 3.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.09);
+}
+
+.page-eyebrow {
+    margin: 0 0 1.6rem;
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.38);
+}
+
+.page-title {
+    margin: 0;
+    font-size: clamp(2.6rem, 6vw, 4.4rem);
+    line-height: 1.02;
+    letter-spacing: -0.03em;
+    font-weight: 600;
+}
+
+.page-lede {
+    margin: 1.8rem 0 0;
+    max-width: 42ch;
+    font-size: clamp(1.05rem, 1.5vw, 1.28rem);
+    line-height: 1.55;
+    color: rgba(255, 255, 255, 0.66);
+}
+
+/*  Prose sits in a column narrow enough to read, with the heading beside it on a
+    wide screen and above it on a narrow one.  */
+.page-section {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+    gap: 2.5rem;
+    padding: 3.5rem 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.page-section h2 {
+    margin: 0;
+    font-size: 1.5rem;
+    line-height: 1.2;
+    letter-spacing: -0.015em;
+    font-weight: 600;
+}
+
+.page-section p {
+    margin: 0 0 1.1rem;
+    max-width: 62ch;
+    font-size: 1rem;
+    line-height: 1.68;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.page-section p:last-child { margin-bottom: 0; }
+
+.page-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1.2rem;
+    padding: 3.5rem 0;
+}
+
+.page-card {
+    padding: 1.6rem;
+    border: 1px solid rgba(255, 255, 255, 0.09);
+    border-radius: 1rem;
+    background: rgba(255, 255, 255, 0.022);
+}
+
+.page-card h3 {
+    margin: 0 0 0.7rem;
+    font-size: 1.05rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+}
+
+.page-card p {
+    margin: 0;
+    font-size: 0.92rem;
+    line-height: 1.6;
+    color: rgba(255, 255, 255, 0.62);
+}
+
+.page-stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1.5rem;
+    padding: 1rem 0 4rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.page-stat strong {
+    display: block;
+    font-size: clamp(2rem, 4vw, 3rem);
+    line-height: 1;
+    letter-spacing: -0.03em;
+    font-weight: 600;
+}
+
+.page-stat span {
+    display: block;
+    margin-top: 0.7rem;
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.66rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.38);
+}
+
+/*  One way onward, so a reader who finishes a page is not returned to the bar
+    to work out what comes next.  */
+.page-next {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 1.5rem;
+    padding-top: 3rem;
+}
+
+.page-next a {
+    font-size: 1.15rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: #eef1f8;
+    text-decoration: none;
+}
+
+.page-next a:hover { color: #fff; text-decoration: underline; text-underline-offset: 0.3em; }
+
+.page-next .page-next-back {
+    font-size: 0.85rem;
+    font-weight: 400;
+    color: rgba(255, 255, 255, 0.45);
+}
+
+/*  The closing panel again, but as an ordinary end to a document rather than the
+    fixed sheet the homepage reveals at the end of the flight.  */
+.pagefoot {
+    padding: 5rem 0 3.5rem;
+    background: #06070b;
+}
+
+.pagefoot .endcard-inner {
+    width: min(72rem, calc(100% - 3rem));
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 2.1rem;
+}
+
+/*  The bar marks where the reader is.  */
+#topbar nav a[aria-current="page"] {
+    background: rgba(255, 255, 255, 0.11);
+    color: #fff;
+}
+
+#navsheet nav a[aria-current="page"] {
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+}
+
+@media (max-width: 860px) {
+    .page-main {
+        width: calc(100% - 2.4rem);
+        padding: 7.5rem 0 4rem;
+    }
+
+    .page-section {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 1.1rem;
+        padding: 2.6rem 0;
+    }
+
+    .page-grid {
+        grid-template-columns: minmax(0, 1fr);
+        padding: 2.6rem 0;
+    }
+
+    .page-stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 1.8rem 1.2rem;
+        padding-bottom: 3rem;
+    }
+
+    .page-next {
+        flex-direction: column-reverse;
+        align-items: flex-start;
+        gap: 0.9rem;
+    }
+
+    .pagefoot { padding: 3.5rem 0 2.5rem; }
+    .pagefoot .endcard-inner { width: calc(100% - 2.4rem); }
+}
